@@ -470,7 +470,7 @@ async function startServer() {
 
   // API Route - Send a chat message
   app.post("/api/chat/:inquiryId/messages", (req, res) => {
-    const { senderEmail, senderName, senderRole, content } = req.body;
+    const { senderEmail, senderName, senderRole, content, messageType, estimate } = req.body;
     if (!senderEmail || !content) {
       return res.status(400).json({ error: "Missing required message fields" });
     }
@@ -482,10 +482,40 @@ async function startServer() {
       senderRole: senderRole || "buyer",
       content,
       sentAt: new Date().toISOString(),
+      ...(messageType && { messageType }),
+      ...(estimate && { estimate }),
     };
     chatMessages.push(msg);
     saveData();
     res.status(201).json(msg);
+  });
+
+  // API Route - 견적서 응답 (수락 / 거절)
+  app.put("/api/chat/:inquiryId/messages/:msgId/estimate", (req, res) => {
+    const { inquiryId, msgId } = req.params;
+    const { response } = req.body as { response: "accepted" | "rejected" };
+    if (!["accepted", "rejected"].includes(response)) {
+      return res.status(400).json({ error: "Invalid response value" });
+    }
+    const msg = chatMessages.find((m) => m.id === msgId && m.inquiryId === inquiryId);
+    if (!msg) return res.status(404).json({ error: "Message not found" });
+    if (msg.messageType !== "estimate" || !msg.estimate) {
+      return res.status(400).json({ error: "Not an estimate message" });
+    }
+    if (msg.estimate.status !== "pending") {
+      return res.status(400).json({ error: "Estimate already responded" });
+    }
+    msg.estimate.status = response;
+    msg.estimate.respondedAt = new Date().toISOString();
+    if (response === "accepted") {
+      const inq = inquiries.find((i) => i.id === inquiryId);
+      if (inq && inq.status === "문의중") {
+        inq.status = "거래중";
+        (inq as any).updatedAt = new Date().toISOString();
+      }
+    }
+    saveData();
+    res.json(msg);
   });
 
   app.get("/api/inquiries", (req, res) => {

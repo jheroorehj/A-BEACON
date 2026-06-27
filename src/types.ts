@@ -49,6 +49,15 @@ export interface UserInquiry {
   lastMessageAt?: string;
 }
 
+export interface EstimateData {
+  price: number;
+  priceNote: string;
+  validUntil: string;
+  terms: string;
+  status: "pending" | "accepted" | "rejected";
+  respondedAt?: string;
+}
+
 export interface ChatMessage {
   id: string;
   inquiryId: string;
@@ -58,7 +67,8 @@ export interface ChatMessage {
   content: string;
   sentAt: string;
   /** "system": 거래 상태 변경 등 자동 생성 이벤트 메시지 */
-  messageType?: "text" | "system";
+  messageType?: "text" | "system" | "estimate";
+  estimate?: EstimateData;
 }
 
 export interface AISearchResult {

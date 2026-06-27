@@ -5,7 +5,7 @@
  * 실제 백엔드 도입 시 BASE_URL과 getAuthHeaders만 수정하면 된다.
  */
 
-import type { Artwork, Artist, UserInquiry, AISearchResult, AdminStats, ChatMessage, TradeStatus } from "../types";
+import type { Artwork, Artist, UserInquiry, AISearchResult, AdminStats, ChatMessage, TradeStatus, EstimateData } from "../types";
 
 // ─── 설정 ─────────────────────────────────────────────────────────────────────
 
@@ -143,6 +143,8 @@ export interface SendMessagePayload {
   senderName: string;
   senderRole: "artist" | "buyer";
   content: string;
+  messageType?: "text" | "estimate";
+  estimate?: EstimateData;
 }
 
 export const chatApi = {
@@ -162,6 +164,13 @@ export const chatApi = {
     return request<ChatMessage>(`/api/chat/${inquiryId}/messages`, {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+  /** 견적서 수락 / 거절 (컬렉터 전용) */
+  respondEstimate(inquiryId: string, msgId: string, response: "accepted" | "rejected"): Promise<ChatMessage> {
+    return request<ChatMessage>(`/api/chat/${inquiryId}/messages/${msgId}/estimate`, {
+      method: "PUT",
+      body: JSON.stringify({ response }),
     });
   },
   /** 거래 상태 변경 (작가 전용) */

@@ -28,9 +28,14 @@ import {
   Info,
   Compass,
   Palette,
+  FileText,
+  CalendarDays,
+  CircleDollarSign,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { chatApi, artworksApi } from "../services/api";
-import type { UserSession, UserInquiry, ChatMessage, TradeStatus, Artwork } from "../types";
+import type { UserSession, UserInquiry, ChatMessage, TradeStatus, Artwork, EstimateData } from "../types";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -176,9 +181,30 @@ interface MessageBubbleProps {
   message: ChatMessage;
   isMine: boolean;
   isConsecutive: boolean;
+  onEstimateRespond?: (msgId: string, response: "accepted" | "rejected") => void;
 }
 
-function MessageBubble({ message, isMine, isConsecutive }: MessageBubbleProps) {
+function EstimateStatusBadge({ status }: { status: EstimateData["status"] }) {
+  if (status === "accepted")
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+        <CheckCircle2 className="h-3 w-3" /> 수락됨
+      </span>
+    );
+  if (status === "rejected")
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+        <XCircle className="h-3 w-3" /> 거절됨
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+      <Clock className="h-3 w-3" /> 검토 중
+    </span>
+  );
+}
+
+function MessageBubble({ message, isMine, isConsecutive, onEstimateRespond }: MessageBubbleProps) {
   // 시스템 메시지 — 중앙 이벤트 카드
   if (message.messageType === "system") {
     return (
@@ -187,6 +213,80 @@ function MessageBubble({ message, isMine, isConsecutive }: MessageBubbleProps) {
           <Info className="h-3 w-3 text-blue-500 flex-shrink-0" />
           <span className="text-[11px] text-blue-700 font-semibold">{message.content}</span>
         </div>
+      </div>
+    );
+  }
+
+  // 견적서 메시지 — 전용 카드
+  if (message.messageType === "estimate" && message.estimate) {
+    const est = message.estimate;
+    const canRespond = !isMine && est.status === "pending";
+    return (
+      <div className={`flex flex-col ${isMine ? "items-end" : "items-start"} ${isConsecutive ? "mt-1" : "mt-4"}`}>
+        {!isConsecutive && (
+          <span className="text-[10px] text-[#aaaaaa] font-semibold mb-1 px-1">{message.senderName}</span>
+        )}
+        <div className="w-72 sm:w-80 border border-[#ebebeb] rounded-2xl overflow-hidden shadow-sm bg-white">
+          {/* 견적서 헤더 */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-[#222222] to-[#444444]">
+            <FileText className="h-4 w-4 text-white flex-shrink-0" />
+            <span className="text-sm font-bold text-white tracking-wide">견적서</span>
+            <div className="ml-auto">
+              <EstimateStatusBadge status={est.status} />
+            </div>
+          </div>
+          {/* 견적 내용 */}
+          <div className="px-4 py-3 space-y-2.5">
+            <div className="flex items-start gap-2">
+              <CircleDollarSign className="h-4 w-4 text-[#ff385c] mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-[#aaaaaa] font-semibold">견적 금액</p>
+                <p className="text-base font-bold text-[#222222]">
+                  {est.price.toLocaleString("ko-KR")}원
+                </p>
+                {est.priceNote && (
+                  <p className="text-[11px] text-[#6a6a6a]">{est.priceNote}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <CalendarDays className="h-4 w-4 text-[#6a6a6a] mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-[#aaaaaa] font-semibold">유효기간</p>
+                <p className="text-xs font-semibold text-[#222222]">{est.validUntil} 까지</p>
+              </div>
+            </div>
+            {est.terms && (
+              <div className="bg-[#f7f7f7] rounded-xl px-3 py-2">
+                <p className="text-[10px] text-[#aaaaaa] font-semibold mb-1">거래 조건</p>
+                <p className="text-xs text-[#444444] whitespace-pre-wrap leading-relaxed">{est.terms}</p>
+              </div>
+            )}
+          </div>
+          {/* 응답 버튼 (컬렉터만, pending일 때) */}
+          {canRespond && onEstimateRespond && (
+            <div className="flex border-t border-[#ebebeb]">
+              <button
+                onClick={() => onEstimateRespond(message.id, "rejected")}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-[#6a6a6a] hover:bg-[#f7f7f7] transition-colors border-none bg-transparent cursor-pointer border-r border-[#ebebeb]"
+              >
+                <ThumbsDown className="h-3.5 w-3.5" /> 거절
+              </button>
+              <button
+                onClick={() => onEstimateRespond(message.id, "accepted")}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-none bg-transparent cursor-pointer"
+              >
+                <ThumbsUp className="h-3.5 w-3.5" /> 수락
+              </button>
+            </div>
+          )}
+          {est.status !== "pending" && est.respondedAt && (
+            <div className="px-4 pb-3 text-[10px] text-[#aaaaaa]">
+              {est.status === "accepted" ? "수락" : "거절"} · {formatTime(est.respondedAt)}
+            </div>
+          )}
+        </div>
+        <span className="text-[10px] text-[#aaaaaa] mt-1 px-1">{formatTime(message.sentAt)}</span>
       </div>
     );
   }
@@ -513,6 +613,14 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
   const [showArtworkPanel, setShowArtworkPanel] = useState(false);
   // 작가 퀵리플라이
   const [showQuickReply, setShowQuickReply] = useState(false);
+  // 견적서 모달
+  const [showEstimateModal, setShowEstimateModal] = useState(false);
+  const [estimateForm, setEstimateForm] = useState({
+    price: "",
+    priceNote: "",
+    validUntil: "",
+    terms: "",
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -678,6 +786,70 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
     }
     setShowQuickReply(false);
   };
+
+  // ─── 견적서 전송 ──────────────────────────────────────────────────────────
+
+  const handleSendEstimate = useCallback(async () => {
+    if (!selectedRoom || isSending) return;
+    const price = parseInt(estimateForm.price.replace(/,/g, ""), 10);
+    if (!price || !estimateForm.validUntil) return;
+
+    const estimate = {
+      price,
+      priceNote: estimateForm.priceNote.trim(),
+      validUntil: estimateForm.validUntil,
+      terms: estimateForm.terms.trim(),
+      status: "pending" as const,
+    };
+
+    setShowEstimateModal(false);
+    setEstimateForm({ price: "", priceNote: "", validUntil: "", terms: "" });
+    setIsSending(true);
+    try {
+      const sent = await chatApi.sendMessage(selectedRoom.id, {
+        senderEmail: session.email,
+        senderName: session.displayName,
+        senderRole: "artist",
+        content: `견적서를 보냈습니다. (${price.toLocaleString("ko-KR")}원)`,
+        messageType: "estimate",
+        estimate,
+      });
+      setMessages((prev) => [...prev, sent]);
+      setRooms((prev) =>
+        prev.map((r) =>
+          r.id === selectedRoom.id
+            ? { ...r, lastMessage: "견적서를 보냈습니다.", lastMessageAt: sent.sentAt }
+            : r
+        )
+      );
+    } catch (err) {
+      console.error("견적서 전송 실패:", err);
+    } finally {
+      setIsSending(false);
+    }
+  }, [selectedRoom, isSending, estimateForm, session]);
+
+  // ─── 견적서 응답 (컬렉터) ──────────────────────────────────────────────────
+
+  const handleEstimateRespond = useCallback(
+    async (msgId: string, response: "accepted" | "rejected") => {
+      if (!selectedRoom) return;
+      try {
+        const updated = await chatApi.respondEstimate(selectedRoom.id, msgId, response);
+        setMessages((prev) => prev.map((m) => (m.id === msgId ? updated : m)));
+        if (response === "accepted") {
+          setRooms((prev) =>
+            prev.map((r) =>
+              r.id === selectedRoom.id ? { ...r, status: "거래중" } : r
+            )
+          );
+        }
+      } catch (err) {
+        console.error("견적서 응답 실패:", err);
+      }
+    },
+    [selectedRoom]
+  );
 
   // ─── 거래 상태 변경 ────────────────────────────────────────────────────────
 
@@ -1068,6 +1240,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                             message={msg}
                             isMine={isMine}
                             isConsecutive={isConsecutive}
+                            onEstimateRespond={handleEstimateRespond}
                           />
                         </React.Fragment>
                       );
@@ -1123,6 +1296,17 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                       className="flex-1 resize-none rounded-2xl border border-[#ebebeb] bg-[#f7f7f7] px-4 py-3 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#ff385c]/30 focus:border-[#ff385c]/50 focus:bg-white transition-all disabled:opacity-60 font-sans"
                       style={{ maxHeight: "120px" }}
                     />
+                    {/* 견적서 버튼 — 작가 역할일 때만 */}
+                    {selectedRoom && isArtistInRoom(selectedRoom) && (
+                      <button
+                        onClick={() => setShowEstimateModal(true)}
+                        disabled={isSending}
+                        title="견적서 보내기"
+                        className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full border border-[#ebebeb] text-[#6a6a6a] hover:border-[#222222] hover:text-[#222222] bg-white transition-all cursor-pointer disabled:opacity-40"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={handleSend}
                       disabled={!hasInput || isSending}
@@ -1141,6 +1325,111 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
           )}
         </div>
       </div>
+
+      {/* ─── 견적서 작성 모달 ─────────────────────────────────────────────── */}
+      {showEstimateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#ebebeb]">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#222222]" />
+                <span className="text-base font-bold text-[#222222]">견적서 작성</span>
+              </div>
+              <button
+                onClick={() => setShowEstimateModal(false)}
+                className="p-1.5 rounded-full hover:bg-[#f7f7f7] text-[#6a6a6a] transition-colors border-none bg-transparent cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* 모달 바디 */}
+            <div className="px-5 py-4 space-y-4">
+              {/* 금액 */}
+              <div>
+                <label className="block text-xs font-bold text-[#222222] mb-1.5">
+                  견적 금액 <span className="text-[#ff385c]">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={estimateForm.price}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      const formatted = raw ? parseInt(raw, 10).toLocaleString("ko-KR") : "";
+                      setEstimateForm((f) => ({ ...f, price: formatted }));
+                    }}
+                    className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 pr-8 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#6a6a6a] font-semibold">원</span>
+                </div>
+              </div>
+
+              {/* 금액 메모 */}
+              <div>
+                <label className="block text-xs font-bold text-[#222222] mb-1.5">
+                  금액 메모 <span className="text-[#aaaaaa] font-normal">(선택)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="예: 배송비 포함, 프레임 별도"
+                  value={estimateForm.priceNote}
+                  onChange={(e) => setEstimateForm((f) => ({ ...f, priceNote: e.target.value }))}
+                  className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50"
+                />
+              </div>
+
+              {/* 유효기간 */}
+              <div>
+                <label className="block text-xs font-bold text-[#222222] mb-1.5">
+                  유효기간 <span className="text-[#ff385c]">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={estimateForm.validUntil}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setEstimateForm((f) => ({ ...f, validUntil: e.target.value }))}
+                  className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50"
+                />
+              </div>
+
+              {/* 거래 조건 */}
+              <div>
+                <label className="block text-xs font-bold text-[#222222] mb-1.5">
+                  거래 조건 <span className="text-[#aaaaaa] font-normal">(선택)</span>
+                </label>
+                <textarea
+                  placeholder="예: 직접 수령 가능, 택배 발송 가능 (포장비 별도), 계약금 30% 선입금 후 제작"
+                  value={estimateForm.terms}
+                  onChange={(e) => setEstimateForm((f) => ({ ...f, terms: e.target.value }))}
+                  rows={3}
+                  className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50 resize-none font-sans"
+                />
+              </div>
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="flex gap-2 px-5 pb-5">
+              <button
+                onClick={() => setShowEstimateModal(false)}
+                className="flex-1 py-2.5 border border-[#ebebeb] rounded-xl text-sm font-bold text-[#6a6a6a] hover:bg-[#f7f7f7] transition-colors cursor-pointer bg-white"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSendEstimate}
+                disabled={!estimateForm.price || !estimateForm.validUntil || isSending}
+                className="flex-1 py-2.5 bg-[#222222] text-white rounded-xl text-sm font-bold hover:bg-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                견적서 보내기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
