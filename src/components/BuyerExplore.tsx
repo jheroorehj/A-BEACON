@@ -818,8 +818,8 @@ export default function BuyerExplore({
                       <div
                         key={art.id}
                         onClick={() => handleOpenArtwork(art)}
-                        className={`break-inside-avoid bg-white border border-[#ebebeb] rounded-[14px] p-5 group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-[#ff385c]/40 flex flex-col justify-between ${
-                          isAiBestMatched ? "ring-2 ring-[#ff385c] shadow-md relative" : ""
+                        className={`break-inside-avoid bg-white border border-[#ebebeb] rounded-[14px] p-5 group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-[#ff385c]/40 flex flex-col justify-between relative ${
+                          isAiBestMatched ? "ring-2 ring-[#ff385c] shadow-md" : ""
                         }`}
                       >
                         {/* AI Match Badge */}
@@ -1130,13 +1130,32 @@ export default function BuyerExplore({
 
               {/* Inquiry CTA block */}
               <div className="mt-8 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => setShowInquiryModal(true)}
-                  className="w-full bg-black text-white py-3 font-sans font-bold text-sm tracking-wide flex items-center justify-center space-x-2 hover:bg-neutral-800 transition-all rounded-none"
-                >
-                  <Mail className="h-4 w-4" />
-                  <span>작가에게 소장 문의 및 의사 전송</span>
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => selectedArtwork && toggleLike(selectedArtwork.id, e)}
+                    className={`flex items-center justify-center gap-2 px-4 py-3 border font-bold text-sm transition-all rounded-none shrink-0 ${
+                      selectedArtwork && likedIds.has(selectedArtwork.id)
+                        ? "border-[#ff385c] bg-[#ff385c]/5 text-[#ff385c]"
+                        : "border-gray-200 bg-white text-gray-400 hover:border-[#ff385c] hover:text-[#ff385c]"
+                    }`}
+                    title={selectedArtwork && likedIds.has(selectedArtwork.id) ? "관심 해제" : "관심 작품 추가"}
+                  >
+                    <Heart
+                      className={`h-5 w-5 ${
+                        selectedArtwork && likedIds.has(selectedArtwork.id)
+                          ? "fill-[#ff385c] text-[#ff385c]"
+                          : ""
+                      }`}
+                    />
+                  </button>
+                  <button
+                    onClick={() => setShowInquiryModal(true)}
+                    className="flex-1 bg-black text-white py-3 font-sans font-bold text-sm tracking-wide flex items-center justify-center space-x-2 hover:bg-neutral-800 transition-all rounded-none"
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span>작가에게 소장 문의 및 의사 전송</span>
+                  </button>
+                </div>
                 <p className="text-[10px] text-gray-400 text-center mt-1.5 font-sans leading-relaxed">
                   본 플랫폼은 현장 직거래나 경매를 중독하지 않으며, 구매 희망자의 문의를 작가의 메일/계정 관리망으로 다이렉트 전송합니다.
                 </p>
