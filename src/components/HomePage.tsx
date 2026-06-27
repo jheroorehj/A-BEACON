@@ -48,12 +48,12 @@ export default function HomePage({ onStart }: HomePageProps) {
               Art · Discovery · Connection
             </p>
             <h1 className="text-[2.2rem] sm:text-[2.8rem] font-black leading-[1.2] tracking-tight text-[#222222]">
-              작품이 필요한 사람과,<br />
-              <span className="text-[#ff385c]">작품을 만드는 사람을 잇다.</span>
+              작품을 찾는 경험까지,<br />
+              <span className="text-[#ff385c]">예술이 되다.</span>
             </h1>
             <p className="text-base sm:text-lg text-[#6a6a6a] font-light leading-relaxed max-w-md">
-              A-BEACON은 신진 예술가의 작품을 소개하고 판매하는 플랫폼입니다.<br />
-              <span className="text-[#444444]">공간의 분위기만 입력하면 AI가 어울리는 작품을 추천해 드립니다.</span>
+              A-BEACON은 AI 큐레이션을 통해 원하는 작품을 추천하고,<br />
+              신진 예술가가 더 많은 사람들과 연결될 수 있도록 돕습니다.
             </p>
           </div>
 
