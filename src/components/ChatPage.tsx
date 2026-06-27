@@ -221,68 +221,130 @@ function MessageBubble({ message, isMine, isConsecutive, onEstimateRespond }: Me
   if (message.messageType === "estimate" && message.estimate) {
     const est = message.estimate;
     const canRespond = !isMine && est.status === "pending";
+    const vatLabel = est.vatType === "included" ? "VAT 포함" : est.vatType === "excluded" ? "VAT 별도" : "VAT 면세";
     return (
       <div className={`flex flex-col ${isMine ? "items-end" : "items-start"} ${isConsecutive ? "mt-1" : "mt-4"}`}>
         {!isConsecutive && (
           <span className="text-[10px] text-[#aaaaaa] font-semibold mb-1 px-1">{message.senderName}</span>
         )}
-        <div className="w-72 sm:w-80 border border-[#ebebeb] rounded-2xl overflow-hidden shadow-sm bg-white">
-          {/* 견적서 헤더 */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-[#222222] to-[#444444]">
+        <div className="w-80 sm:w-96 border border-[#ebebeb] rounded-2xl overflow-hidden shadow-sm bg-white">
+
+          {/* 헤더 */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-[#1a1a1a] to-[#3a3a3a]">
             <FileText className="h-4 w-4 text-white flex-shrink-0" />
-            <span className="text-sm font-bold text-white tracking-wide">견적서</span>
-            <div className="ml-auto">
-              <EstimateStatusBadge status={est.status} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white leading-none">견적서</p>
+              <p className="text-[10px] text-white/60 mt-0.5">{est.estimateNo} · {est.issuedAt?.slice(0,10)}</p>
+            </div>
+            <EstimateStatusBadge status={est.status} />
+          </div>
+
+          {/* ① 작품 정보 */}
+          <div className="px-4 pt-3 pb-2 border-b border-[#f0f0f0]">
+            <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-1.5">작품 정보</p>
+            <p className="text-sm font-bold text-[#222222]">{est.artworkTitle}</p>
+            <p className="text-xs text-[#6a6a6a]">by {est.artistName}</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+              {est.year && <span className="text-[11px] text-[#6a6a6a]">{est.year}년</span>}
+              {est.medium && <span className="text-[11px] text-[#6a6a6a]">{est.medium}</span>}
+              {(est.canvasSize || est.dimensions) && (
+                <span className="text-[11px] text-[#6a6a6a]">
+                  {[est.canvasSize, est.dimensions].filter(Boolean).join(" · ")}
+                </span>
+              )}
+              {est.edition && <span className="text-[11px] text-[#6a6a6a]">Edition {est.edition}</span>}
             </div>
           </div>
-          {/* 견적 내용 */}
-          <div className="px-4 py-3 space-y-2.5">
-            <div className="flex items-start gap-2">
-              <CircleDollarSign className="h-4 w-4 text-[#ff385c] mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-[#aaaaaa] font-semibold">견적 금액</p>
-                <p className="text-base font-bold text-[#222222]">
-                  {est.price.toLocaleString("ko-KR")}원
-                </p>
-                {est.priceNote && (
-                  <p className="text-[11px] text-[#6a6a6a]">{est.priceNote}</p>
-                )}
+
+          {/* ② 견적 금액 */}
+          <div className="px-4 pt-3 pb-2 border-b border-[#f0f0f0]">
+            <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-2">견적 금액</p>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-[#6a6a6a]">공급가액</span>
+                <span className="text-xs font-semibold text-[#222222]">{est.supplyPrice.toLocaleString("ko-KR")}원</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-[#6a6a6a]">부가가치세</span>
+                <span className="text-xs text-[#6a6a6a]">{vatLabel}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-[#f0f0f0]">
+                <span className="text-sm font-bold text-[#222222]">총 합계</span>
+                <span className="text-base font-bold text-[#ff385c]">{est.totalPrice.toLocaleString("ko-KR")}원</span>
               </div>
             </div>
-            <div className="flex items-start gap-2">
-              <CalendarDays className="h-4 w-4 text-[#6a6a6a] mt-0.5 flex-shrink-0" />
+          </div>
+
+          {/* ③ 거래 조건 */}
+          <div className="px-4 pt-3 pb-2 border-b border-[#f0f0f0]">
+            <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-2">거래 조건</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {est.depositRate !== undefined && est.depositRate > 0 && (
+                <div>
+                  <p className="text-[10px] text-[#aaaaaa]">계약금</p>
+                  <p className="text-xs font-semibold text-[#222222]">{est.depositRate}%</p>
+                </div>
+              )}
               <div>
-                <p className="text-xs text-[#aaaaaa] font-semibold">유효기간</p>
-                <p className="text-xs font-semibold text-[#222222]">{est.validUntil} 까지</p>
+                <p className="text-[10px] text-[#aaaaaa]">결제 방식</p>
+                <p className="text-xs font-semibold text-[#222222]">{est.paymentMethod}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#aaaaaa]">인도 방법</p>
+                <p className="text-xs font-semibold text-[#222222]">{est.deliveryMethod}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#aaaaaa]">배송비</p>
+                <p className="text-xs font-semibold text-[#222222]">{est.deliveryFeeBy} 부담</p>
+              </div>
+              {est.deliveryDate && (
+                <div>
+                  <p className="text-[10px] text-[#aaaaaa]">인도 예정일</p>
+                  <p className="text-xs font-semibold text-[#222222]">{est.deliveryDate}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-[10px] text-[#aaaaaa]">유효기간</p>
+                <p className="text-xs font-semibold text-[#222222]">{est.validUntil}까지</p>
               </div>
             </div>
-            {est.terms && (
-              <div className="bg-[#f7f7f7] rounded-xl px-3 py-2">
-                <p className="text-[10px] text-[#aaaaaa] font-semibold mb-1">거래 조건</p>
-                <p className="text-xs text-[#444444] whitespace-pre-wrap leading-relaxed">{est.terms}</p>
-              </div>
+          </div>
+
+          {/* ④ 비고 */}
+          <div className="px-4 pt-2.5 pb-3">
+            <div className="flex gap-3 mb-1.5">
+              <span className={`text-[11px] font-semibold ${est.includesCoa ? "text-emerald-600" : "text-[#aaaaaa] line-through"}`}>
+                진품보증서 {est.includesCoa ? "포함" : "미포함"}
+              </span>
+              <span className={`text-[11px] font-semibold ${est.includesFrame ? "text-emerald-600" : "text-[#aaaaaa] line-through"}`}>
+                액자 {est.includesFrame ? "포함" : "미포함"}
+              </span>
+            </div>
+            {est.notes && (
+              <p className="text-[11px] text-[#6a6a6a] bg-[#f7f7f7] rounded-lg px-2.5 py-1.5 whitespace-pre-wrap leading-relaxed">{est.notes}</p>
             )}
           </div>
-          {/* 응답 버튼 (컬렉터만, pending일 때) */}
+
+          {/* 응답 버튼 */}
           {canRespond && onEstimateRespond && (
             <div className="flex border-t border-[#ebebeb]">
               <button
                 onClick={() => onEstimateRespond(message.id, "rejected")}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-[#6a6a6a] hover:bg-[#f7f7f7] transition-colors border-none bg-transparent cursor-pointer border-r border-[#ebebeb]"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-[#6a6a6a] hover:bg-[#f7f7f7] transition-colors border-none bg-transparent cursor-pointer border-r border-[#ebebeb]"
               >
                 <ThumbsDown className="h-3.5 w-3.5" /> 거절
               </button>
               <button
                 onClick={() => onEstimateRespond(message.id, "accepted")}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-none bg-transparent cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border-none bg-transparent cursor-pointer"
               >
                 <ThumbsUp className="h-3.5 w-3.5" /> 수락
               </button>
             </div>
           )}
           {est.status !== "pending" && est.respondedAt && (
-            <div className="px-4 pb-3 text-[10px] text-[#aaaaaa]">
-              {est.status === "accepted" ? "수락" : "거절"} · {formatTime(est.respondedAt)}
+            <div className="px-4 py-2 bg-[#fafafa] text-[10px] text-[#aaaaaa] text-center">
+              {est.status === "accepted" ? "✓ 수락됨" : "✗ 거절됨"} · {formatTime(est.respondedAt)}
             </div>
           )}
         </div>
@@ -616,10 +678,20 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
   // 견적서 모달
   const [showEstimateModal, setShowEstimateModal] = useState(false);
   const [estimateForm, setEstimateForm] = useState({
-    price: "",
-    priceNote: "",
     validUntil: "",
-    terms: "",
+    supplyPrice: "",
+    vatType: "included" as "included" | "excluded" | "exempt",
+    depositRate: "",
+    paymentMethod: "계좌이체",
+    deliveryMethod: "택배",
+    deliveryFeeBy: "구매자",
+    deliveryDate: "",
+    includesCoa: false,
+    includesFrame: false,
+    notes: "",
+    // 작품 추가 정보
+    canvasSize: "",
+    edition: "",
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -791,26 +863,53 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
 
   const handleSendEstimate = useCallback(async () => {
     if (!selectedRoom || isSending) return;
-    const price = parseInt(estimateForm.price.replace(/,/g, ""), 10);
-    if (!price || !estimateForm.validUntil) return;
+    const supplyPrice = parseInt(estimateForm.supplyPrice.replace(/,/g, ""), 10);
+    if (!supplyPrice || !estimateForm.validUntil) return;
+
+    const vatAmount = estimateForm.vatType === "excluded" ? Math.round(supplyPrice * 0.1) : 0;
+    const totalPrice = supplyPrice + vatAmount;
+    const now = new Date();
+    const estimateNo = `EST-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
 
     const estimate = {
-      price,
-      priceNote: estimateForm.priceNote.trim(),
+      estimateNo,
+      issuedAt: now.toISOString(),
       validUntil: estimateForm.validUntil,
-      terms: estimateForm.terms.trim(),
+      artworkTitle: selectedRoom.artworkTitle,
+      artistName: selectedRoom.artistName,
+      year: selectedArtwork?.year ? String(selectedArtwork.year) : undefined,
+      dimensions: selectedArtwork?.dimensions || undefined,
+      canvasSize: estimateForm.canvasSize.trim() || undefined,
+      medium: selectedArtwork?.medium || undefined,
+      edition: estimateForm.edition.trim() || undefined,
+      supplyPrice,
+      vatType: estimateForm.vatType,
+      totalPrice,
+      depositRate: estimateForm.depositRate ? Number(estimateForm.depositRate) : undefined,
+      paymentMethod: estimateForm.paymentMethod,
+      deliveryMethod: estimateForm.deliveryMethod,
+      deliveryFeeBy: estimateForm.deliveryFeeBy,
+      deliveryDate: estimateForm.deliveryDate || undefined,
+      includesCoa: estimateForm.includesCoa,
+      includesFrame: estimateForm.includesFrame,
+      notes: estimateForm.notes.trim() || undefined,
       status: "pending" as const,
     };
 
     setShowEstimateModal(false);
-    setEstimateForm({ price: "", priceNote: "", validUntil: "", terms: "" });
+    setEstimateForm({
+      validUntil: "", supplyPrice: "", vatType: "included",
+      depositRate: "", paymentMethod: "계좌이체", deliveryMethod: "택배",
+      deliveryFeeBy: "구매자", deliveryDate: "", includesCoa: false,
+      includesFrame: false, notes: "", canvasSize: "", edition: "",
+    });
     setIsSending(true);
     try {
       const sent = await chatApi.sendMessage(selectedRoom.id, {
         senderEmail: session.email,
         senderName: session.displayName,
         senderRole: "artist",
-        content: `견적서를 보냈습니다. (${price.toLocaleString("ko-KR")}원)`,
+        content: `견적서를 보냈습니다. (${totalPrice.toLocaleString("ko-KR")}원)`,
         messageType: "estimate",
         estimate,
       });
@@ -827,7 +926,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
     } finally {
       setIsSending(false);
     }
-  }, [selectedRoom, isSending, estimateForm, session]);
+  }, [selectedRoom, selectedArtwork, isSending, estimateForm, session]);
 
   // ─── 견적서 응답 (컬렉터) ──────────────────────────────────────────────────
 
@@ -1327,103 +1426,187 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
       </div>
 
       {/* ─── 견적서 작성 모달 ─────────────────────────────────────────────── */}
-      {showEstimateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+      {showEstimateModal && selectedRoom && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full sm:max-w-lg bg-white sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] rounded-t-2xl">
+
             {/* 모달 헤더 */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#ebebeb]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#ebebeb] flex-shrink-0">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#222222]" />
-                <span className="text-base font-bold text-[#222222]">견적서 작성</span>
+                <div>
+                  <p className="text-sm font-bold text-[#222222]">견적서 작성</p>
+                  <p className="text-[11px] text-[#aaaaaa]">{selectedRoom.artworkTitle}</p>
+                </div>
               </div>
-              <button
-                onClick={() => setShowEstimateModal(false)}
-                className="p-1.5 rounded-full hover:bg-[#f7f7f7] text-[#6a6a6a] transition-colors border-none bg-transparent cursor-pointer"
-              >
+              <button onClick={() => setShowEstimateModal(false)} className="p-1.5 rounded-full hover:bg-[#f7f7f7] text-[#6a6a6a] transition-colors border-none bg-transparent cursor-pointer">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* 모달 바디 */}
-            <div className="px-5 py-4 space-y-4">
-              {/* 금액 */}
-              <div>
-                <label className="block text-xs font-bold text-[#222222] mb-1.5">
-                  견적 금액 <span className="text-[#ff385c]">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="0"
-                    value={estimateForm.price}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/[^0-9]/g, "");
-                      const formatted = raw ? parseInt(raw, 10).toLocaleString("ko-KR") : "";
-                      setEstimateForm((f) => ({ ...f, price: formatted }));
-                    }}
-                    className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 pr-8 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#6a6a6a] font-semibold">원</span>
+            {/* 모달 바디 — 스크롤 */}
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+              {/* ① 작품 정보 (자동 + 보완) */}
+              <section>
+                <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-2">① 작품 정보</p>
+                <div className="bg-[#f7f7f7] rounded-xl px-3 py-2.5 mb-3 space-y-0.5">
+                  <p className="text-xs font-bold text-[#222222]">{selectedRoom.artworkTitle}</p>
+                  <p className="text-[11px] text-[#6a6a6a]">by {selectedRoom.artistName}</p>
+                  {selectedArtwork && (
+                    <p className="text-[11px] text-[#6a6a6a]">
+                      {[selectedArtwork.year, selectedArtwork.medium, selectedArtwork.dimensions].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                 </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">호수 <span className="text-[#aaaaaa] font-normal">(선택)</span></label>
+                    <input type="text" placeholder="예: 20호" value={estimateForm.canvasSize}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, canvasSize: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">에디션 <span className="text-[#aaaaaa] font-normal">(선택)</span></label>
+                    <input type="text" placeholder="예: 3/30" value={estimateForm.edition}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, edition: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50" />
+                  </div>
+                </div>
+              </section>
 
-              {/* 금액 메모 */}
-              <div>
-                <label className="block text-xs font-bold text-[#222222] mb-1.5">
-                  금액 메모 <span className="text-[#aaaaaa] font-normal">(선택)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="예: 배송비 포함, 프레임 별도"
-                  value={estimateForm.priceNote}
-                  onChange={(e) => setEstimateForm((f) => ({ ...f, priceNote: e.target.value }))}
-                  className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50"
-                />
-              </div>
+              {/* ② 견적 금액 */}
+              <section>
+                <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-2">② 견적 금액</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">공급가액 <span className="text-[#ff385c]">*</span></label>
+                    <div className="relative">
+                      <input type="text" inputMode="numeric" placeholder="0"
+                        value={estimateForm.supplyPrice}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          setEstimateForm((f) => ({ ...f, supplyPrice: raw ? parseInt(raw,10).toLocaleString("ko-KR") : "" }));
+                        }}
+                        className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 pr-8 text-sm placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#6a6a6a] font-semibold">원</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1.5">부가가치세(VAT)</label>
+                    <div className="flex gap-2">
+                      {(["included","excluded","exempt"] as const).map((v) => (
+                        <button key={v} onClick={() => setEstimateForm((f) => ({ ...f, vatType: v }))}
+                          className={`flex-1 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${estimateForm.vatType === v ? "bg-[#222222] text-white border-[#222222]" : "bg-white text-[#6a6a6a] border-[#ebebeb] hover:border-[#222222]/40"}`}>
+                          {v === "included" ? "포함" : v === "excluded" ? "별도(+10%)" : "면세"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {estimateForm.supplyPrice && (
+                    <div className="bg-[#f7f7f7] rounded-xl px-3 py-2 flex justify-between items-center">
+                      <span className="text-xs text-[#6a6a6a] font-semibold">총 합계</span>
+                      <span className="text-sm font-bold text-[#ff385c]">
+                        {(() => {
+                          const sp = parseInt(estimateForm.supplyPrice.replace(/,/g,""),10)||0;
+                          const total = estimateForm.vatType === "excluded" ? sp + Math.round(sp*0.1) : sp;
+                          return total.toLocaleString("ko-KR") + "원";
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">유효기간 <span className="text-[#ff385c]">*</span></label>
+                    <input type="date" value={estimateForm.validUntil}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, validUntil: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50" />
+                  </div>
+                </div>
+              </section>
 
-              {/* 유효기간 */}
-              <div>
-                <label className="block text-xs font-bold text-[#222222] mb-1.5">
-                  유효기간 <span className="text-[#ff385c]">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={estimateForm.validUntil}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setEstimateForm((f) => ({ ...f, validUntil: e.target.value }))}
-                  className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50"
-                />
-              </div>
+              {/* ③ 거래 조건 */}
+              <section>
+                <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-2">③ 거래 조건</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">계약금 비율 <span className="text-[#aaaaaa] font-normal">(선택)</span></label>
+                    <div className="relative">
+                      <input type="number" min="0" max="100" placeholder="30"
+                        value={estimateForm.depositRate}
+                        onChange={(e) => setEstimateForm((f) => ({ ...f, depositRate: e.target.value }))}
+                        className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 pr-7 text-sm placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50" />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6a6a6a]">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">결제 방식</label>
+                    <select value={estimateForm.paymentMethod}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, paymentMethod: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50 bg-white">
+                      {["계좌이체","카드결제","현금","기타"].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">인도 방법</label>
+                    <select value={estimateForm.deliveryMethod}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, deliveryMethod: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50 bg-white">
+                      {["택배","직접 수령","화물 배송","설치 포함"].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">배송비 부담</label>
+                    <select value={estimateForm.deliveryFeeBy}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, deliveryFeeBy: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50 bg-white">
+                      {["구매자","판매자","협의"].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-semibold text-[#444444] mb-1">인도 예정일 <span className="text-[#aaaaaa] font-normal">(선택)</span></label>
+                    <input type="date" value={estimateForm.deliveryDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, deliveryDate: e.target.value }))}
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50" />
+                  </div>
+                </div>
+              </section>
 
-              {/* 거래 조건 */}
-              <div>
-                <label className="block text-xs font-bold text-[#222222] mb-1.5">
-                  거래 조건 <span className="text-[#aaaaaa] font-normal">(선택)</span>
-                </label>
-                <textarea
-                  placeholder="예: 직접 수령 가능, 택배 발송 가능 (포장비 별도), 계약금 30% 선입금 후 제작"
-                  value={estimateForm.terms}
-                  onChange={(e) => setEstimateForm((f) => ({ ...f, terms: e.target.value }))}
+              {/* ④ 비고·유의사항 */}
+              <section>
+                <p className="text-[10px] font-bold text-[#aaaaaa] uppercase tracking-wide mb-2">④ 비고 · 유의사항</p>
+                <div className="flex gap-4 mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={estimateForm.includesCoa}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, includesCoa: e.target.checked }))}
+                      className="w-4 h-4 accent-[#222222] cursor-pointer" />
+                    <span className="text-xs font-semibold text-[#444444]">진품보증서 포함</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={estimateForm.includesFrame}
+                      onChange={(e) => setEstimateForm((f) => ({ ...f, includesFrame: e.target.checked }))}
+                      className="w-4 h-4 accent-[#222222] cursor-pointer" />
+                    <span className="text-xs font-semibold text-[#444444]">액자 포함</span>
+                  </label>
+                </div>
+                <textarea placeholder="기타 특약사항 (색상 차이, 교환·환불 조건 등)"
+                  value={estimateForm.notes}
+                  onChange={(e) => setEstimateForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={3}
-                  className="w-full border border-[#ebebeb] rounded-xl px-4 py-2.5 text-sm text-[#222222] placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50 resize-none font-sans"
-                />
-              </div>
+                  className="w-full border border-[#ebebeb] rounded-xl px-3 py-2 text-sm placeholder-[#aaaaaa] focus:outline-none focus:ring-2 focus:ring-[#222222]/20 focus:border-[#222222]/50 resize-none font-sans" />
+              </section>
             </div>
 
             {/* 모달 푸터 */}
-            <div className="flex gap-2 px-5 pb-5">
-              <button
-                onClick={() => setShowEstimateModal(false)}
-                className="flex-1 py-2.5 border border-[#ebebeb] rounded-xl text-sm font-bold text-[#6a6a6a] hover:bg-[#f7f7f7] transition-colors cursor-pointer bg-white"
-              >
+            <div className="flex gap-2 px-5 py-4 border-t border-[#ebebeb] flex-shrink-0">
+              <button onClick={() => setShowEstimateModal(false)}
+                className="flex-1 py-2.5 border border-[#ebebeb] rounded-xl text-sm font-bold text-[#6a6a6a] hover:bg-[#f7f7f7] transition-colors cursor-pointer bg-white">
                 취소
               </button>
-              <button
-                onClick={handleSendEstimate}
-                disabled={!estimateForm.price || !estimateForm.validUntil || isSending}
-                className="flex-1 py-2.5 bg-[#222222] text-white rounded-xl text-sm font-bold hover:bg-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
+              <button onClick={handleSendEstimate}
+                disabled={!estimateForm.supplyPrice || !estimateForm.validUntil || isSending}
+                className="flex-2 px-6 py-2.5 bg-[#222222] text-white rounded-xl text-sm font-bold hover:bg-black transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                 견적서 보내기
               </button>
             </div>

@@ -50,10 +50,38 @@ export interface UserInquiry {
 }
 
 export interface EstimateData {
-  price: number;
-  priceNote: string;
-  validUntil: string;
-  terms: string;
+  // ① 견적서 기본 정보
+  estimateNo: string;      // 자동 생성
+  issuedAt: string;        // 작성일 (ISO)
+  validUntil: string;      // 유효기간 (YYYY-MM-DD)
+
+  // ② 작품 정보 (자동 입력)
+  artworkTitle: string;
+  artistName: string;
+  year?: string;
+  dimensions?: string;     // 규격 cm
+  canvasSize?: string;     // 호수
+  medium?: string;         // 재료/매체
+  edition?: string;        // 에디션 (판화·사진)
+
+  // ③ 견적 금액
+  supplyPrice: number;     // 공급가액
+  vatType: "included" | "excluded" | "exempt";
+  totalPrice: number;      // 총 합계
+
+  // ④ 거래 조건
+  depositRate?: number;    // 계약금 비율 (%)
+  paymentMethod: string;   // 결제 방식
+  deliveryMethod: string;  // 인도 방법
+  deliveryFeeBy: string;   // 배송비 부담 주체
+  deliveryDate?: string;   // 인도 예정일
+
+  // ⑤ 비고·유의사항
+  includesCoa: boolean;    // 진품보증서 포함
+  includesFrame: boolean;  // 액자 포함
+  notes?: string;          // 기타 특약사항
+
+  // 상태
   status: "pending" | "accepted" | "rejected";
   respondedAt?: string;
 }
