@@ -111,38 +111,38 @@ export default function HomePage({ onStart }: HomePageProps) {
       {/* ── 2. Story (왜 만들었나) ── */}
       <section id="story" className="bg-[#111111] text-white py-24 px-6 sm:px-10">
         <div className="max-w-4xl mx-auto">
-          <p className="text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-[#ff385c] mb-6">
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.25em] text-[#ff385c] mb-6">
             Our Story
           </p>
-          <h2 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-12">
+          <h2 className="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-8">
             A-BEAC<span className="text-[#ff385c]">O</span>N은 작가들의 등대입니다.
           </h2>
-          <p className="text-sm text-[#6a6a6a] font-light leading-relaxed max-w-xl mb-12 -mt-6">
+          <p className="text-base text-[#bbbbbb] font-light leading-relaxed max-w-xl mb-14">
             BEACON은 항해자를 안전한 곳으로 이끄는 등대를 뜻합니다.
             우리는 세상에 알려지지 않은 예술가들에게 빛을 비춰,
             그들의 작품이 마땅한 사람에게 닿을 수 있도록 합니다.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-sm text-[#aaaaaa] font-light leading-relaxed mb-16">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-base text-[#cccccc] font-light leading-relaxed mb-16">
+            <div className="space-y-4">
               <div className="h-px w-12 bg-[#ff385c] mb-5" />
-              <p className="text-xs font-bold uppercase tracking-widest text-[#ff385c] mb-2">신진 작가에게는</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-[#ff385c]">신진 작가에게는</p>
               <p>
                 훌륭한 작품을 만들어도 알릴 기회가 부족한 작가들이 많습니다.
                 전시를 열기에는 비용이 부담되고, 온라인에서는 작품보다 유명세가 먼저 보이는 경우도 있습니다.
               </p>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="h-px w-12 bg-[#ff385c] mb-5" />
-              <p className="text-xs font-bold uppercase tracking-widest text-[#ff385c] mb-2">작품을 찾는 사람에게는</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-[#ff385c]">작품을 찾는 사람에게는</p>
               <p>
                 공간에 어울리는 작품을 찾고 싶지만, 어디서부터 찾아야 할지 막막합니다.
                 수많은 작품 속에서 자신의 취향과 분위기에 맞는 작품을 발견하기란 쉽지 않습니다.
               </p>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="h-px w-12 bg-[#ff385c] mb-5" />
-              <p className="text-xs font-bold uppercase tracking-widest text-[#ff385c] mb-2">그래서 A-BEACON을 만들었습니다.</p>
+              <p className="text-sm font-bold uppercase tracking-widest text-[#ff385c]">그래서 A-BEACON을 만들었습니다.</p>
               <p>
                 신진 작가에게는 홍보와 판매의 기회를, 구매자에게는 AI 기반 맞춤 추천으로
                 원하는 작품을 더 쉽게 만날 수 있는 플랫폼을 만들었습니다.
@@ -150,14 +150,14 @@ export default function HomePage({ onStart }: HomePageProps) {
             </div>
           </div>
 
-          <div className="border-t border-white/10 pt-10 space-y-3">
-            <p className="text-xl sm:text-2xl font-medium text-white leading-relaxed tracking-tight">
+          <div className="border-t border-white/20 pt-10 space-y-3">
+            <p className="text-2xl sm:text-3xl font-medium text-white leading-relaxed tracking-tight">
               좋은 작품은 더 많은 사람을 만나야 합니다.
             </p>
-            <p className="text-xl sm:text-2xl font-medium text-white/60 leading-relaxed tracking-tight">
+            <p className="text-2xl sm:text-3xl font-medium text-white/70 leading-relaxed tracking-tight">
               그리고 좋은 작품을 찾는 일은 더 쉬워져야 합니다.
             </p>
-            <p className="mt-4 text-xs font-mono text-[#555555]">— A-BEACON 팀</p>
+            <p className="mt-5 text-sm font-mono text-[#888888]">— A-BEACON 팀</p>
           </div>
         </div>
       </section>
