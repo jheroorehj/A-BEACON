@@ -61,7 +61,7 @@ export default function Navbar({
                 <button
                   onClick={() => onModeChange("buyer")}
                   className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer border-none ${
-                    currentMode === "buyer"
+                    currentMode === "buyer" && !isChatActive
                       ? "bg-[#ff385c] text-white shadow-sm"
                       : "text-[#6a6a6a] hover:text-[#222222] bg-transparent"
                   }`}
@@ -72,7 +72,7 @@ export default function Navbar({
                 <button
                   onClick={() => onModeChange("artist")}
                   className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer border-none ${
-                    currentMode === "artist"
+                    currentMode === "artist" && !isChatActive
                       ? "bg-[#222222] text-white shadow-sm"
                       : "text-[#6a6a6a] hover:text-[#222222] bg-transparent"
                   }`}

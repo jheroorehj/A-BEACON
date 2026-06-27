@@ -26,6 +26,8 @@ import {
   Zap,
   ShoppingBag,
   Info,
+  Compass,
+  Palette,
 } from "lucide-react";
 import { chatApi, artworksApi } from "../services/api";
 import type { UserSession, UserInquiry, ChatMessage, TradeStatus, Artwork } from "../types";
@@ -484,8 +486,12 @@ function QuickReplyPanel({ onSelect, onClose }: QuickReplyPanelProps) {
 // ─── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
 
 type FilterTab = "전체" | "거래중" | "완료";
+type RoleTab = "buyer" | "artist";
 
 export default function ChatPage({ session, chatMode, initialRoomId, onBack }: ChatPageProps) {
+  const isArtistAccount = !!session.artistId;
+  const [roleTab, setRoleTab] = useState<RoleTab>(chatMode === "artist" ? "artist" : "buyer");
+
   const [rooms, setRooms] = useState<UserInquiry[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsError, setRoomsError] = useState<string | null>(null);
@@ -710,7 +716,16 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
   const filteredRooms = useMemo(() => {
     let list = rooms;
 
-    // 탭 필터
+    // 역할 탭 필터 (작가 계정만)
+    if (isArtistAccount) {
+      if (roleTab === "buyer") {
+        list = list.filter((r) => r.buyerEmail === session.email);
+      } else {
+        list = list.filter((r) => r.artistId === session.artistId);
+      }
+    }
+
+    // 거래 상태 탭 필터
     if (filterTab === "거래중") {
       list = list.filter((r) => r.status === "거래중");
     } else if (filterTab === "완료") {
@@ -729,7 +744,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
     }
 
     return list;
-  }, [rooms, sidebarSearch, filterTab]);
+  }, [rooms, sidebarSearch, filterTab, roleTab, isArtistAccount, session.email, session.artistId]);
 
   const tabCounts = useMemo(
     () => ({
@@ -779,26 +794,56 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
           } sm:flex`}
         >
           {/* 사이드바 헤더 */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#ebebeb] bg-[#f7f7f7] flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-[#ff385c]" />
-              <span className="text-sm font-bold text-[#222222]">채팅 & 거래</span>
-              {!roomsLoading && (
-                <span className="text-xs text-[#6a6a6a] bg-[#ebebeb] px-1.5 py-0.5 rounded-full font-semibold">
-                  {filteredRooms.length !== rooms.length
-                    ? `${filteredRooms.length}/${rooms.length}`
-                    : rooms.length}
-                </span>
-              )}
+          <div className="flex-shrink-0 border-b border-[#ebebeb] bg-[#f7f7f7]">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-[#ff385c]" />
+                <span className="text-sm font-bold text-[#222222]">채팅 & 거래</span>
+                {!roomsLoading && (
+                  <span className="text-xs text-[#6a6a6a] bg-[#ebebeb] px-1.5 py-0.5 rounded-full font-semibold">
+                    {filteredRooms.length !== rooms.length
+                      ? `${filteredRooms.length}/${rooms.length}`
+                      : rooms.length}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={fetchRooms}
+                disabled={roomsLoading}
+                className="p-1.5 rounded-full text-[#6a6a6a] hover:text-[#222222] hover:bg-[#ebebeb] transition-all border-none bg-transparent cursor-pointer disabled:opacity-40"
+                title="새로고침"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${roomsLoading ? "animate-spin" : ""}`} />
+              </button>
             </div>
-            <button
-              onClick={fetchRooms}
-              disabled={roomsLoading}
-              className="p-1.5 rounded-full text-[#6a6a6a] hover:text-[#222222] hover:bg-[#ebebeb] transition-all border-none bg-transparent cursor-pointer disabled:opacity-40"
-              title="새로고침"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${roomsLoading ? "animate-spin" : ""}`} />
-            </button>
+
+            {/* 컬렉터 / 작가 역할 탭 — 작가 계정만 표시 */}
+            {isArtistAccount && (
+              <div className="flex px-3 pb-2 gap-1.5">
+                <button
+                  onClick={() => { setRoleTab("buyer"); setSelectedRoom(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg transition-all border cursor-pointer ${
+                    roleTab === "buyer"
+                      ? "bg-[#ff385c] text-white border-[#ff385c]"
+                      : "bg-white text-[#6a6a6a] border-[#ebebeb] hover:border-[#ff385c]/40 hover:text-[#ff385c]"
+                  }`}
+                >
+                  <Compass className="h-3 w-3" />
+                  컬렉터
+                </button>
+                <button
+                  onClick={() => { setRoleTab("artist"); setSelectedRoom(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg transition-all border cursor-pointer ${
+                    roleTab === "artist"
+                      ? "bg-[#222222] text-white border-[#222222]"
+                      : "bg-white text-[#6a6a6a] border-[#ebebeb] hover:border-[#222222]/40 hover:text-[#222222]"
+                  }`}
+                >
+                  <Palette className="h-3 w-3" />
+                  작가
+                </button>
+              </div>
+            )}
           </div>
 
           {/* 필터 탭 */}
@@ -891,9 +936,9 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                 </div>
                 <p className="text-sm font-semibold text-[#6a6a6a]">아직 대화가 없습니다</p>
                 <p className="text-xs text-[#aaaaaa] text-center leading-relaxed">
-                  작품을 탐색하고 작가에게 문의하거나,
-                  <br />
-                  컬렉터의 문의가 오면 여기에 표시됩니다.
+                  {isArtistAccount && roleTab === "artist"
+                    ? "컬렉터가 작품에 문의하면\n여기에 표시됩니다."
+                    : "작품을 탐색하고\n작가에게 문의해보세요."}
                 </p>
               </div>
             ) : filteredRooms.length === 0 ? (

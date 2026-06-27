@@ -145,7 +145,7 @@ export default function App() {
       <Navbar
         session={session}
         currentMode={isArtistAccount ? mode : "buyer"}
-        onModeChange={isArtistAccount ? (m) => setMode(m) : undefined}
+        onModeChange={isArtistAccount ? (m) => { setMode(m); setAppView("main"); } : undefined}
         onLogout={handleLogout}
         onLogoClick={handleLogoClick}
         onOpenChat={() => handleOpenChat()}
