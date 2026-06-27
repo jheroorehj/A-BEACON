@@ -102,6 +102,7 @@ export default function App() {
 
   const handleLogoClick = () => {
     setAppView("main");
+    setMode("buyer");
   };
 
   // ─── 라우팅 ──────────────────────────────────────────────────────────────────
@@ -136,16 +137,15 @@ export default function App() {
   }
 
   // 3. 로그인된 일반 사용자 / 작가 → 채팅 or 메인 뷰
-  // role === "artist": 고객 모드 + 작가 모드 전환 가능
-  // role === "user"  : 고객 모드 고정 (작가 탭 없음)
+  // 모든 로그인 유저: 컬렉터 / 작가 모드 전환 가능
   const isArtistAccount = session.role === "artist";
 
   return (
     <div className={`bg-[#ffffff] text-[#222222] flex flex-col ${appView === "chat" ? "h-screen overflow-hidden" : "min-h-screen"}`} id="app-root-view">
       <Navbar
         session={session}
-        currentMode={isArtistAccount ? mode : "buyer"}
-        onModeChange={isArtistAccount ? (m) => { setMode(m); setAppView("main"); } : undefined}
+        currentMode={mode}
+        onModeChange={(m) => { setMode(m); setAppView("main"); }}
         onLogout={handleLogout}
         onLogoClick={handleLogoClick}
         onOpenChat={() => handleOpenChat()}
@@ -182,8 +182,8 @@ export default function App() {
               <span>재시도</span>
             </button>
           </div>
-        ) : isArtistAccount && mode === "artist" ? (
-          /* 작가 모드: 작가 지원실 — artist role 전용 */
+        ) : mode === "artist" ? (
+          /* 작가 모드: 작가 지원실 */
           <ArtistManager
             artworks={artworks}
             artists={artists}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Compass, Sliders, LogOut, UserCheck, LayoutDashboard, MessageSquare, Palette } from "lucide-react";
+import { Compass, LogOut, UserCheck, LayoutDashboard, MessageSquare, Palette } from "lucide-react";
 import { Logo } from "./Logo";
 import type { UserSession } from "../types";
 
@@ -55,8 +55,8 @@ export default function Navbar({
                 <LayoutDashboard className="h-4 w-4 text-[#ff385c]" />
                 <span>개발자 대시보드</span>
               </div>
-            ) : session.role === "artist" && onModeChange ? (
-              /* 작가 계정: 컬렉터 ↔ 작가 토글 — 채팅 중에도 항상 표시, 클릭 시 해당 모드 메인으로 이동 */
+            ) : onModeChange ? (
+              /* 모든 로그인 유저: 컬렉터 ↔ 작가 토글 */
               <div className="flex border border-[#dddddd] p-1 rounded-full bg-[#f7f7f7] gap-0.5">
                 <button
                   onClick={() => onModeChange("buyer")}
@@ -81,19 +81,7 @@ export default function Navbar({
                   <span>작가</span>
                 </button>
               </div>
-            ) : isChatActive ? (
-              /* 일반 유저 채팅 활성 */
-              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#6a6a6a]">
-                <MessageSquare className="h-4 w-4 text-[#ff385c]" />
-                <span>채팅 & 거래</span>
-              </div>
-            ) : (
-              /* 일반 고객: 탐색 고정 표시 */
-              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#6a6a6a]">
-                <Compass className="h-4 w-4 text-[#ff385c]" />
-                <span>작품 탐색</span>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* 우측: 유저 정보 + 채팅 + 로그아웃 */}
