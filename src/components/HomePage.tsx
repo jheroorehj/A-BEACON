@@ -118,7 +118,7 @@ export default function HomePage({ onStart }: HomePageProps) {
             왜 A-BEACON을<br />만들었을까요?
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-sm text-[#aaaaaa] font-light leading-relaxed mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-sm text-[#aaaaaa] font-light leading-relaxed mb-16">
             <div className="space-y-3">
               <div className="h-px w-12 bg-[#ff385c] mb-5" />
               <p className="text-xs font-bold uppercase tracking-widest text-[#ff385c] mb-2">신진 작가에게는</p>
@@ -135,21 +135,24 @@ export default function HomePage({ onStart }: HomePageProps) {
                 수많은 작품 속에서 자신의 취향과 분위기에 맞는 작품을 발견하기란 쉽지 않습니다.
               </p>
             </div>
+            <div className="space-y-3">
+              <div className="h-px w-12 bg-[#ff385c] mb-5" />
+              <p className="text-xs font-bold uppercase tracking-widest text-[#ff385c] mb-2">그래서 A-BEACON을 만들었습니다.</p>
+              <p>
+                신진 작가에게는 홍보와 판매의 기회를, 구매자에게는 AI 기반 맞춤 추천으로
+                원하는 작품을 더 쉽게 만날 수 있는 플랫폼을 만들었습니다.
+              </p>
+            </div>
           </div>
 
-          <div className="p-8 border border-white/10 rounded-2xl bg-white/5 mb-10">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#ff385c] mb-4">그래서 A-BEACON을 만들었습니다.</p>
-            <p className="text-base sm:text-lg text-[#dddddd] leading-relaxed font-light">
-              신진 작가에게는 <span className="text-white font-semibold">홍보와 판매의 기회</span>를,
-              구매자에게는 <span className="text-white font-semibold">AI 기반 맞춤 추천</span>으로
-              원하는 작품을 더 쉽게 만날 수 있는 플랫폼을 만들었습니다.
+          <div className="border-t border-white/10 pt-10 space-y-3">
+            <p className="text-xl sm:text-2xl font-medium text-white leading-relaxed tracking-tight">
+              좋은 작품은 더 많은 사람을 만나야 합니다.
             </p>
-          </div>
-
-          <div className="space-y-3 text-[#6a6a6a] text-sm font-light border-t border-white/10 pt-8">
-            <p className="text-white/80">좋은 작품은 더 많은 사람을 만나야 합니다.</p>
-            <p className="text-white/80">그리고 좋은 작품을 찾는 일은 더 쉬워져야 합니다.</p>
-            <p className="mt-2 text-xs font-mono text-[#555555]">— A-BEACON 팀</p>
+            <p className="text-xl sm:text-2xl font-medium text-white/60 leading-relaxed tracking-tight">
+              그리고 좋은 작품을 찾는 일은 더 쉬워져야 합니다.
+            </p>
+            <p className="mt-4 text-xs font-mono text-[#555555]">— A-BEACON 팀</p>
           </div>
         </div>
       </section>
