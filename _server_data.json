@@ -379,6 +379,21 @@
       "message": "작가님 안녕하세요. '빛의 이명' 작품을 서재 공간에 두고 싶어서 연락드립니다. 인화 방식이 특이하던데, 시간이 지나도 색 바램 없이 유지가 되는지 궁금합니다.",
       "status": "문의중",
       "createdAt": "2026-06-22T16:45:00.000Z"
+    },
+    {
+      "id": "inquiry_demo_est_001",
+      "artworkId": "art_1",
+      "artworkTitle": "노을빛 온기가 머무는 해안",
+      "artworkImage": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
+      "artistId": "artist_1",
+      "artistName": "김하늘 (Kim Ha-neul)",
+      "buyerName": "이용자",
+      "buyerEmail": "user@a-beacon.art",
+      "message": "안녕하세요! 이 작품이 정말 마음에 들어요. 견적 부탁드릴게요.",
+      "status": "거래중",
+      "createdAt": "2026-06-25T09:00:00.000Z",
+      "lastMessage": "수락해주셔서 감사합니다! 계약금 입금 안내 드릴게요.",
+      "lastMessageAt": "2026-06-27T11:35:00.000Z"
     }
   ],
   "chatMessages": [
@@ -592,6 +607,105 @@
       "senderRole": "artist",
       "content": "감사합니다! 좋은 공간에서 작품이 함께하길 바랍니다.",
       "sentAt": "2026-06-23T13:34:05.521Z"
+    },
+    {
+      "id": "msg_demo_est_001",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "user@a-beacon.art",
+      "senderName": "이용자",
+      "senderRole": "buyer",
+      "content": "안녕하세요, 작가님! '노을빛 온기가 머무는 해안' 작품이 정말 인상적이었어요. 저희 집 거실에 걸어두고 싶은데, 견적서 받아볼 수 있을까요?",
+      "sentAt": "2026-06-25T09:01:00.000Z"
+    },
+    {
+      "id": "msg_demo_est_002",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "artist1@a-beacon.art",
+      "senderName": "김하늘 (Kim Ha-neul)",
+      "senderRole": "artist",
+      "content": "안녕하세요! 관심 가져주셔서 감사합니다. 작품 사이즈는 90.9 × 72.7 cm(30호), 유화 캔버스 작품입니다. 진품보증서 포함, 액자는 별도입니다. 정식 견적서 보내드릴게요.",
+      "sentAt": "2026-06-25T09:15:00.000Z"
+    },
+    {
+      "id": "msg_demo_est_003",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "user@a-beacon.art",
+      "senderName": "이용자",
+      "senderRole": "buyer",
+      "content": "감사합니다! 배송비와 인도 일정도 견적서에 포함해 주시면 좋겠어요.",
+      "sentAt": "2026-06-25T09:20:00.000Z"
+    },
+    {
+      "id": "msg_demo_est_004",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "artist1@a-beacon.art",
+      "senderName": "김하늘 (Kim Ha-neul)",
+      "senderRole": "artist",
+      "content": "네, 모든 내용 포함해서 아래 견적서 확인해 주세요 :)",
+      "sentAt": "2026-06-25T09:25:00.000Z"
+    },
+    {
+      "id": "msg_demo_est_005",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "artist1@a-beacon.art",
+      "senderName": "김하늘 (Kim Ha-neul)",
+      "senderRole": "artist",
+      "content": "견적서를 보냈습니다. (3,300,000원)",
+      "sentAt": "2026-06-25T09:28:00.000Z",
+      "messageType": "estimate",
+      "estimate": {
+        "estimateNo": "EST-20260625-K7M2",
+        "issuedAt": "2026-06-25T09:28:00.000Z",
+        "validUntil": "2026-07-25",
+        "artworkTitle": "노을빛 온기가 머무는 해안",
+        "artistName": "김하늘 (Kim Ha-neul)",
+        "year": "2025",
+        "dimensions": "90.9 x 72.7 cm",
+        "canvasSize": "30호",
+        "medium": "Oil on Canvas",
+        "edition": null,
+        "supplyPrice": 3000000,
+        "vatType": "excluded",
+        "totalPrice": 3300000,
+        "depositRate": 30,
+        "paymentMethod": "계좌이체",
+        "deliveryMethod": "택배",
+        "deliveryFeeBy": "구매자",
+        "deliveryDate": "2026-07-10",
+        "includesCoa": true,
+        "includesFrame": false,
+        "notes": "· 작품 색상은 촬영 환경에 따라 실물과 다소 차이가 있을 수 있습니다.\n· 견적 유효기간 이후 가격이 변경될 수 있습니다.\n· 작품 훼손 시 교환·환불이 제한될 수 있습니다.",
+        "status": "accepted",
+        "respondedAt": "2026-06-27T11:28:00.000Z"
+      }
+    },
+    {
+      "id": "msg_demo_est_006",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "user@a-beacon.art",
+      "senderName": "이용자",
+      "senderRole": "buyer",
+      "content": "견적서 잘 받았어요! 조건이 마음에 들어서 수락했습니다. 계약금 입금 계좌 알려주세요.",
+      "sentAt": "2026-06-27T11:30:00.000Z"
+    },
+    {
+      "id": "msg_demo_est_sys_001",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": null,
+      "senderName": "시스템",
+      "senderRole": "system",
+      "content": "견적서가 수락되어 거래중 상태로 변경되었습니다.",
+      "sentAt": "2026-06-27T11:30:01.000Z",
+      "messageType": "system"
+    },
+    {
+      "id": "msg_demo_est_007",
+      "inquiryId": "inquiry_demo_est_001",
+      "senderEmail": "artist1@a-beacon.art",
+      "senderName": "김하늘 (Kim Ha-neul)",
+      "senderRole": "artist",
+      "content": "수락해주셔서 감사합니다! 계약금 30%(990,000원) 입금 계좌는 국민은행 000-0000-0000-00 (김하늘)입니다. 입금 확인 후 제작 및 발송 진행할게요.",
+      "sentAt": "2026-06-27T11:35:00.000Z"
     }
   ]
 }
