@@ -1,8 +1,11 @@
-import { ArrowRight, Palette, MessageCircle, Layers } from "lucide-react";
+import { ArrowRight, Palette, MessageCircle, Layers, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
+import type { UserSession } from "../types";
 
 interface HomePageProps {
   onStart: () => void;
+  session?: UserSession | null;
+  onLogout?: () => void;
 }
 
 const PREVIEW_IMAGES = [
@@ -38,19 +41,37 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-export default function HomePage({ onStart }: HomePageProps) {
+export default function HomePage({ onStart, session, onLogout }: HomePageProps) {
   return (
     <div className="min-h-screen bg-white text-[#222222]">
 
       {/* ── 상단 헤더 ── */}
       <header className="border-b border-[#ebebeb] px-6 sm:px-10 py-5 flex items-center justify-between">
         <Logo size="md" />
-        <button
-          onClick={onStart}
-          className="text-sm font-bold text-[#6a6a6a] hover:text-[#222222] transition-colors cursor-pointer border-none bg-transparent"
-        >
-          로그인
-        </button>
+        {session ? (
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onStart}
+              className="text-sm font-bold text-[#ff385c] hover:text-[#e00b41] transition-colors cursor-pointer border-none bg-transparent"
+            >
+              작품 탐색하기
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 text-sm font-bold text-[#6a6a6a] hover:text-[#222222] transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <LogOut className="h-4 w-4" />
+              로그아웃
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onStart}
+            className="text-sm font-bold text-[#6a6a6a] hover:text-[#222222] transition-colors cursor-pointer border-none bg-transparent"
+          >
+            로그인
+          </button>
+        )}
       </header>
 
       {/* ── 1. Hero ── */}

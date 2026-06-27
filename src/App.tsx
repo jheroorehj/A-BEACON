@@ -75,7 +75,7 @@ export default function App() {
   const [authView, setAuthView] = useState<"home" | "login" | "register">("home");
 
   // ─── 로그인 후 앱 뷰 ─────────────────────────────────────────────────────────
-  const [appView, setAppView] = useState<"main" | "chat">("main");
+  const [appView, setAppView] = useState<"home" | "main" | "chat">("main");
   const [chatInitRoomId, setChatInitRoomId] = useState<string | null>(null);
 
   // ─── Auth 핸들러 ─────────────────────────────────────────────────────────────
@@ -101,8 +101,7 @@ export default function App() {
   };
 
   const handleLogoClick = () => {
-    setAppView("main");
-    setMode("buyer");
+    setAppView("home");
   };
 
   // ─── 라우팅 ──────────────────────────────────────────────────────────────────
@@ -124,7 +123,18 @@ export default function App() {
     );
   }
 
-  // 2. 관리자 → 개발자 대시보드
+  // 2. 로그인된 유저가 홈화면(랜딩 페이지)을 보는 경우
+  if (appView === "home") {
+    return (
+      <HomePage
+        onStart={() => { setMode("buyer"); setAppView("main"); }}
+        session={session}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // 3. 관리자 → 개발자 대시보드
   if (session.role === "admin") {
     return (
       <div className="min-h-screen bg-[#fafafa] flex flex-col">
@@ -136,7 +146,7 @@ export default function App() {
     );
   }
 
-  // 3. 로그인된 일반 사용자 / 작가 → 채팅 or 메인 뷰
+  // 4. 로그인된 일반 사용자 / 작가 → 채팅 or 메인 뷰
   // 모든 로그인 유저: 컬렉터 / 작가 모드 전환 가능
   const isArtistAccount = session.role === "artist";
 
