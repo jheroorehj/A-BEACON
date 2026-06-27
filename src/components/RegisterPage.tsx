@@ -45,7 +45,7 @@ export default function RegisterPage({ onLogin, onBack }: RegisterPageProps) {
   return (
     <div className="min-h-screen bg-[#ffffff] flex flex-col">
       {/* 상단 브랜드 바 */}
-      <header className="border-b border-[#ebebeb] py-5 px-8 flex items-center justify-between">
+      <header className="border-b border-[#ebebeb] px-6 sm:px-10 py-5 flex items-center justify-between">
         <Logo size="md" />
         {onBack && (
           <button
