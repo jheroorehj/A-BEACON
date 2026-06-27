@@ -29,6 +29,15 @@ function AB() {
   return <>A-BEAC<span className="text-[#ff385c]">O</span>N</>;
 }
 
+/** 섹션 공통 라벨 */
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <p className="text-sm font-mono font-bold uppercase tracking-[0.25em] text-[#ff385c] mb-4">
+      {children}
+    </p>
+  );
+}
+
 export default function HomePage({ onStart }: HomePageProps) {
   return (
     <div className="min-h-screen bg-white text-[#222222]">
@@ -45,18 +54,16 @@ export default function HomePage({ onStart }: HomePageProps) {
       </header>
 
       {/* ── 1. Hero ── */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 pt-20 pb-24 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-24 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
         {/* 텍스트 */}
         <div className="space-y-8">
           <div className="space-y-5">
-            <p className="text-sm font-mono font-bold uppercase tracking-[0.25em] text-[#ff385c]">
-              Art · Discovery · Connection
-            </p>
+            <SectionLabel>Art · Discovery · Connection</SectionLabel>
             <h1 className="text-[2.6rem] sm:text-[3.4rem] font-black leading-[1.15] tracking-tight text-[#222222]">
               작품을 찾는 경험까지,<br />
               <span className="text-[#ff385c]">예술이 되다.</span>
             </h1>
-            <p className="text-lg sm:text-xl text-[#6a6a6a] font-light leading-relaxed max-w-md">
+            <p className="text-lg sm:text-xl text-[#6a6a6a] font-light leading-relaxed">
               <AB />은 AI 큐레이션을 통해 원하는 작품을 추천하고,<br />
               신진 예술가가 더 많은 사람들과 연결될 수 있도록 돕습니다.
             </p>
@@ -115,10 +122,8 @@ export default function HomePage({ onStart }: HomePageProps) {
 
       {/* ── 2. Story ── */}
       <section id="story" className="bg-[#111111] text-white py-24 px-6 sm:px-10">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-sm font-mono font-bold uppercase tracking-[0.25em] text-[#ff385c] mb-6">
-            Our Story
-          </p>
+        <div className="max-w-6xl mx-auto">
+          <SectionLabel>Our Story</SectionLabel>
           <h2 className="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-8">
             A-BEAC<span className="text-[#ff385c]">O</span>N은 작가들의 등대입니다.
           </h2>
@@ -169,14 +174,12 @@ export default function HomePage({ onStart }: HomePageProps) {
       {/* ── 3. How It Works ── */}
       <section className="py-24 px-6 sm:px-10 bg-[#fafafa]">
         <div className="max-w-6xl mx-auto">
-          <p className="text-sm font-mono font-bold uppercase tracking-[0.25em] text-[#ff385c] mb-3">
-            How It Works
-          </p>
+          <SectionLabel>How It Works</SectionLabel>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-14">
             <AB />이 하는 일
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
                 icon: <Palette className="h-7 w-7 text-[#ff385c]" />,
@@ -212,81 +215,88 @@ export default function HomePage({ onStart }: HomePageProps) {
 
       {/* ── 4. For Artists / For Collectors ── */}
       <section className="py-24 px-6 sm:px-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="max-w-6xl mx-auto">
+          <SectionLabel>Who It's For</SectionLabel>
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-14">
+            작가와 컬렉터, 모두를 위해
+          </h2>
 
-          {/* 작가 */}
-          <div className="bg-[#222222] text-white rounded-2xl p-10 space-y-6">
-            <div>
-              <span className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#ff385c]">For Artists</span>
-              <h3 className="text-3xl font-black mt-2 leading-tight">
-                작품만으로<br />말하세요.
-              </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            {/* 작가 */}
+            <div className="bg-[#222222] text-white rounded-2xl p-10 space-y-6">
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#ff385c]">For Artists</span>
+                <h3 className="text-3xl font-black mt-2 leading-tight">
+                  작품만으로<br />말하세요.
+                </h3>
+              </div>
+              <p className="text-base text-[#aaaaaa] font-light leading-relaxed">
+                포트폴리오를 등록하고, 작품에 이야기를 담고, 감상자를 만나세요.
+                갤러리 입성이나 큰 자본 없이도 세상과 연결될 수 있습니다.
+              </p>
+              <ul className="space-y-3 text-base">
+                {[
+                  "온라인 포트폴리오 무료 개설",
+                  "AI 기반 작품 태그 자동 생성",
+                  "감상자로부터 직접 소장 문의 수령",
+                  "수수료 없는 직거래 연결",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-[#dddddd]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#ff385c] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={onStart}
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#222222] font-bold text-base rounded-full hover:bg-[#f7f7f7] transition-all cursor-pointer border-none"
+              >
+                작가로 시작하기
+                <ArrowRight className="h-5 w-5" />
+              </button>
             </div>
-            <p className="text-base text-[#aaaaaa] font-light leading-relaxed">
-              포트폴리오를 등록하고, 작품에 이야기를 담고, 감상자를 만나세요.
-              갤러리 입성이나 큰 자본 없이도 세상과 연결될 수 있습니다.
-            </p>
-            <ul className="space-y-3 text-base">
-              {[
-                "온라인 포트폴리오 무료 개설",
-                "AI 기반 작품 태그 자동 생성",
-                "감상자로부터 직접 소장 문의 수령",
-                "수수료 없는 직거래 연결",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-[#dddddd]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#ff385c] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={onStart}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#222222] font-bold text-sm rounded-full hover:bg-[#f7f7f7] transition-all cursor-pointer border-none"
-            >
-              작가로 시작하기
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
 
-          {/* 감상자 */}
-          <div className="bg-[#fff5f6] border border-[#ff385c]/10 rounded-2xl p-10 space-y-6">
-            <div>
-              <span className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#ff385c]">For Collectors</span>
-              <h3 className="text-3xl font-black mt-2 leading-tight text-[#222222]">
-                원하는 작품을<br />찾으세요.
-              </h3>
+            {/* 감상자 */}
+            <div className="bg-[#fff5f6] border border-[#ff385c]/10 rounded-2xl p-10 space-y-6">
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#ff385c]">For Collectors</span>
+                <h3 className="text-3xl font-black mt-2 leading-tight text-[#222222]">
+                  원하는 작품을<br />찾으세요.
+                </h3>
+              </div>
+              <p className="text-base text-[#6a6a6a] font-light leading-relaxed">
+                경매장이나 갤러리가 아니어도 됩니다. 분위기, 색감, 공간을 기반으로
+                나에게 맞는 작품을 AI가 추천합니다.
+              </p>
+              <ul className="space-y-3 text-base">
+                {[
+                  "감성 기반 AI 큐레이션 검색",
+                  "회화 · 조소 · 사진 · 미디어 · 공예 전 장르",
+                  "작가와 직접 소통 및 소장 문의",
+                  "작가 인터뷰와 작업 철학 열람",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-[#6a6a6a]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#ff385c] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={onStart}
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#ff385c] text-white font-bold text-base rounded-full hover:bg-[#e00b41] transition-all cursor-pointer border-none"
+              >
+                작품 탐색하기
+                <ArrowRight className="h-5 w-5" />
+              </button>
             </div>
-            <p className="text-base text-[#6a6a6a] font-light leading-relaxed">
-              경매장이나 갤러리가 아니어도 됩니다. 분위기, 색감, 공간을 기반으로
-              나에게 맞는 작품을 AI가 추천합니다.
-            </p>
-            <ul className="space-y-3 text-base">
-              {[
-                "감성 기반 AI 큐레이션 검색",
-                "회화 · 조소 · 사진 · 미디어 · 공예 전 장르",
-                "작가와 직접 소통 및 소장 문의",
-                "작가 인터뷰와 작업 철학 열람",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-[#6a6a6a]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#ff385c] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={onStart}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#ff385c] text-white font-bold text-sm rounded-full hover:bg-[#e00b41] transition-all cursor-pointer border-none"
-            >
-              작품 탐색하기
-              <ArrowRight className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </section>
 
       {/* ── 5. 최종 CTA ── */}
       <section className="py-24 px-6 sm:px-10 bg-[#fafafa] border-t border-[#ebebeb] text-center">
-        <div className="max-w-xl mx-auto space-y-6">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <SectionLabel>Get Started</SectionLabel>
           <Logo size="lg" showDot={true} className="justify-center" />
           <h2 className="text-3xl sm:text-4xl font-black text-[#222222] leading-tight">
             지금 시작하세요.
@@ -306,7 +316,7 @@ export default function HomePage({ onStart }: HomePageProps) {
 
       {/* ── 하단 푸터 ── */}
       <footer className="border-t border-[#ebebeb] py-8 px-6 sm:px-10">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <Logo size="sm" />
           <p className="text-sm text-[#aaaaaa] font-mono">
             &copy; {new Date().getFullYear()} <AB />. All rights reserved.
