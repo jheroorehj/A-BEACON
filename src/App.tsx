@@ -102,7 +102,6 @@ export default function App() {
 
   const handleLogoClick = () => {
     setAppView("main");
-    setMode("buyer");
   };
 
   // ─── 라우팅 ──────────────────────────────────────────────────────────────────
@@ -146,7 +145,7 @@ export default function App() {
       <Navbar
         session={session}
         currentMode={isArtistAccount ? mode : "buyer"}
-        onModeChange={isArtistAccount ? (m) => { setMode(m); setAppView("main"); } : undefined}
+        onModeChange={isArtistAccount ? (m) => setMode(m) : undefined}
         onLogout={handleLogout}
         onLogoClick={handleLogoClick}
         onOpenChat={() => handleOpenChat()}
