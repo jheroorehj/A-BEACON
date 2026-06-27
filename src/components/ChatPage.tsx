@@ -713,26 +713,22 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
 
   // ─── 사이드바 필터 + 검색 ────────────────────────────────────────────────
 
+  // 역할 탭 필터 — tabCounts·filteredRooms 공통 베이스
+  const roleFilteredRooms = useMemo(() => {
+    if (!isArtistAccount) return rooms;
+    if (roleTab === "buyer") return rooms.filter((r) => r.buyerEmail === session.email);
+    return rooms.filter((r) => r.artistId === session.artistId);
+  }, [rooms, roleTab, isArtistAccount, session.email, session.artistId]);
+
   const filteredRooms = useMemo(() => {
-    let list = rooms;
+    let list = roleFilteredRooms;
 
-    // 역할 탭 필터 (작가 계정만)
-    if (isArtistAccount) {
-      if (roleTab === "buyer") {
-        list = list.filter((r) => r.buyerEmail === session.email);
-      } else {
-        list = list.filter((r) => r.artistId === session.artistId);
-      }
-    }
-
-    // 거래 상태 탭 필터
     if (filterTab === "거래중") {
       list = list.filter((r) => r.status === "거래중");
     } else if (filterTab === "완료") {
       list = list.filter((r) => r.status === "거래완료" || r.status === "취소");
     }
 
-    // 텍스트 검색
     if (sidebarSearch.trim()) {
       const q = sidebarSearch.toLowerCase();
       list = list.filter(
@@ -744,15 +740,15 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
     }
 
     return list;
-  }, [rooms, sidebarSearch, filterTab, roleTab, isArtistAccount, session.email, session.artistId]);
+  }, [roleFilteredRooms, sidebarSearch, filterTab]);
 
   const tabCounts = useMemo(
     () => ({
-      전체: rooms.length,
-      거래중: rooms.filter((r) => r.status === "거래중").length,
-      완료: rooms.filter((r) => r.status === "거래완료" || r.status === "취소").length,
+      전체: roleFilteredRooms.length,
+      거래중: roleFilteredRooms.filter((r) => r.status === "거래중").length,
+      완료: roleFilteredRooms.filter((r) => r.status === "거래완료" || r.status === "취소").length,
     }),
-    [rooms]
+    [roleFilteredRooms]
   );
 
   // ─── 렌더링 ───────────────────────────────────────────────────────────────
@@ -801,9 +797,9 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                 <span className="text-sm font-bold text-[#222222]">채팅 & 거래</span>
                 {!roomsLoading && (
                   <span className="text-xs text-[#6a6a6a] bg-[#ebebeb] px-1.5 py-0.5 rounded-full font-semibold">
-                    {filteredRooms.length !== rooms.length
-                      ? `${filteredRooms.length}/${rooms.length}`
-                      : rooms.length}
+                    {filteredRooms.length !== roleFilteredRooms.length
+                      ? `${filteredRooms.length}/${roleFilteredRooms.length}`
+                      : roleFilteredRooms.length}
                   </span>
                 )}
               </div>
@@ -847,7 +843,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
           </div>
 
           {/* 필터 탭 */}
-          {rooms.length > 0 && (
+          {roleFilteredRooms.length > 0 && (
             <div className="flex border-b border-[#ebebeb] flex-shrink-0">
               {(["전체", "거래중", "완료"] as FilterTab[]).map((tab) => (
                 <button
@@ -877,7 +873,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
           )}
 
           {/* 검색 */}
-          {rooms.length > 0 && (
+          {roleFilteredRooms.length > 0 && (
             <div className="px-3 py-2 border-b border-[#ebebeb] flex-shrink-0">
               <div className="flex items-center gap-2 bg-[#f7f7f7] rounded-lg px-3 py-1.5">
                 <Search className="h-3.5 w-3.5 text-[#aaaaaa] flex-shrink-0" />
@@ -929,7 +925,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                   재시도
                 </button>
               </div>
-            ) : rooms.length === 0 ? (
+            ) : roleFilteredRooms.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 gap-3">
                 <div className="p-4 bg-[#f7f7f7] rounded-full">
                   <MessageSquare className="h-8 w-8 text-[#ebebeb]" />
