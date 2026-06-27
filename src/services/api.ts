@@ -9,11 +9,17 @@ import type { Artwork, Artist, UserInquiry, AISearchResult, AdminStats, ChatMess
 
 // ─── 설정 ─────────────────────────────────────────────────────────────────────
 
-const BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ?? "";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("beacon_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  try {
+    const raw = localStorage.getItem("beacon_session");
+    if (!raw) return {};
+    const session = JSON.parse(raw) as { uid?: string };
+    return session?.uid ? { Authorization: `Bearer ${session.uid}` } : {};
+  } catch {
+    return {};
+  }
 }
 
 // ─── 공통 fetch 래퍼 ────────────────────────────────────────────────────────

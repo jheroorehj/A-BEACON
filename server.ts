@@ -8,18 +8,8 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
 import { INITIAL_ARTISTS, INITIAL_ARTWORKS } from "./src/data";
-import { Artist, Artwork, UserInquiry, ChatMessage } from "./src/types";
-
-/** JSON 문자열을 안전하게 파싱. 실패 시 fallback을 반환 */
-function safeJsonParse<T>(text: string, fallback: T): T {
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return fallback;
-  }
-}
+import { Artist, Artwork, UserInquiry, ChatMessage, TradeStatus } from "./src/types";
 
 // Load environment variables
 dotenv.config();
@@ -52,9 +42,11 @@ function loadPersistedData(): PersistedStore | null {
 
 function saveData(): void {
   const payload: PersistedStore = { artists, artworks, inquiries, chatMessages };
-  fs.writeFile(DATA_FILE, JSON.stringify(payload, null, 2), "utf-8", (err) => {
-    if (err) console.error("[Data] 저장 실패:", err);
-  });
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(payload, null, 2), "utf-8");
+  } catch (err) {
+    console.error("[Data] 저장 실패:", err);
+  }
 }
 
 // 시작 시 파일에서 복원, 없으면 시드 데이터 사용
@@ -64,27 +56,7 @@ let artworks: Artwork[] = persisted?.artworks?.length ? persisted.artworks : [..
 let inquiries: UserInquiry[] = persisted?.inquiries ?? [];
 let chatMessages: ChatMessage[] = persisted?.chatMessages ?? [];
 
-// Lazy-initialized Gemini Client
-let geminiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
-    return null;
-  }
-  if (!geminiClient) {
-    geminiClient = new GoogleGenAI({
-      apiKey: apiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
-  }
-  return geminiClient;
-}
-
-// Fallback search algorithm if GEMINI_API_KEY is not defined
+// Rule-based search algorithm
 function localRuleBasedSearch(query: string) {
   const normQuery = query.toLowerCase().trim();
   const matchedTags: string[] = [];
@@ -303,7 +275,19 @@ async function startServer() {
     if (index === -1) {
       return res.status(404).json({ error: "Artwork not found" });
     }
-    artworks[index] = { ...artworks[index], ...req.body };
+    const { title, description, category, tags, year, medium, dimensions, priceRange, image, featured } = req.body;
+    const patch: Partial<Artwork> = {};
+    if (title !== undefined) patch.title = title;
+    if (description !== undefined) patch.description = description;
+    if (category !== undefined) patch.category = category;
+    if (tags !== undefined) patch.tags = tags;
+    if (year !== undefined) patch.year = year;
+    if (medium !== undefined) patch.medium = medium;
+    if (dimensions !== undefined) patch.dimensions = dimensions;
+    if (priceRange !== undefined) patch.priceRange = priceRange;
+    if (image !== undefined) patch.image = image;
+    if (featured !== undefined) patch.featured = featured;
+    artworks[index] = { ...artworks[index], ...patch };
     saveData();
     res.json(artworks[index]);
   });
@@ -340,22 +324,30 @@ async function startServer() {
 
   // API Route - Update artist profile
   app.put("/api/artists/:id", (req, res) => {
+    const { name, avatar, bio, keywords, interviewQuestions, email } = req.body;
     const index = artists.findIndex((a) => a.id === req.params.id);
     if (index === -1) {
       const newArtist: Artist = {
         id: req.params.id,
-        name: req.body.name || "신무명작가",
-        avatar: req.body.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-        bio: req.body.bio || "",
-        keywords: req.body.keywords || [],
-        interviewQuestions: req.body.interviewQuestions || [],
-        email: req.body.email || "artist@artsplatform.com",
+        name: name || "신무명작가",
+        avatar: avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+        bio: bio || "",
+        keywords: keywords || [],
+        interviewQuestions: interviewQuestions || [],
+        email: email || "artist@artsplatform.com",
       };
       artists.push(newArtist);
       saveData();
       return res.json(newArtist);
     }
-    artists[index] = { ...artists[index], ...req.body };
+    const patch: Partial<Artist> = {};
+    if (name !== undefined) patch.name = name;
+    if (avatar !== undefined) patch.avatar = avatar;
+    if (bio !== undefined) patch.bio = bio;
+    if (keywords !== undefined) patch.keywords = keywords;
+    if (interviewQuestions !== undefined) patch.interviewQuestions = interviewQuestions;
+    if (email !== undefined) patch.email = email;
+    artists[index] = { ...artists[index], ...patch };
     saveData();
     res.json(artists[index]);
   });
@@ -400,9 +392,14 @@ async function startServer() {
     res.status(201).json(newInquiry);
   });
 
+  const VALID_STATUSES: TradeStatus[] = ["문의중", "거래중", "거래완료", "취소"];
+
   // API Route - Update inquiry status
   app.put("/api/inquiries/:id/status", (req, res) => {
     const { status } = req.body;
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ error: "유효하지 않은 거래 상태입니다." });
+    }
     const index = inquiries.findIndex((i) => i.id === req.params.id);
     if (index === -1) return res.status(404).json({ error: "Inquiry not found" });
     inquiries[index] = { ...inquiries[index], status };
@@ -517,156 +514,24 @@ async function startServer() {
     });
   });
 
-  // API Route: AI Natural Language Art Search
-  app.post("/api/search", async (req, res) => {
+  // API Route: Natural Language Art Search (rule-based)
+  app.post("/api/search", (req, res) => {
     const { prompt } = req.body;
     if (!prompt || typeof prompt !== "string" || prompt.trim() === "") {
       return res.status(400).json({ error: "검색 질의가 제공되지 않았습니다." });
     }
-
-    const ai = getGeminiClient();
-    if (!ai) {
-      // Fallback if no Gemini Key is loaded
-      console.log("No GEMINI_API_KEY. Using local rule-based matched search.");
-      const matches = localRuleBasedSearch(prompt);
-      return res.json({ ...matches, isMocked: true });
-    }
-
-    try {
-      console.log(`Analyzing art discovery prompt: "${prompt}" via gemini-3.5-flash`);
-
-      // Prepare database resume to feed Gemini context
-      const artworksContext = artworks.map((art) => ({
-        id: art.id,
-        title: art.title,
-        artistName: art.artistName,
-        category: art.category,
-        tags: art.tags,
-        description: art.description.slice(0, 150), // keep tokens small
-      }));
-
-      const systemInstruction = `You are a professional fine art curator assistant for A-BEACON, a premium fine art platform representing emerging artists as their guiding beacon.
-Analyze the buyer's natural language request (written in Korean/English) that describes what artwork they desire (their mood, colors, places, emotions, styles).
-
-Your tasks:
-1. Extract 3-5 concise, modern Korean tags (such as '따뜻한', '고요한', '기하학', '초현실', '빛의번짐') representative of the user's emotional and physical description.
-2. Carefully look at our active artwork collection listed below, select up to 5 best matched artworks, and rank them.
-3. For each selected matched artwork, draft a highly compelling 1-2 sentence curators' choice explanation (in elegant Korean) detailing *exactly* why this specific piece is an exquisite match for their described space or mood.
-
-Our Artwork Database:
-${JSON.stringify(artworksContext, null, 2)}
-
-You MUST strictly output a JSON object adhering exactly to this TypeScript schema:
-{
-  "tags": string[], // Extracted tags from user text
-  "matchedArtworkIds": string[], // Ranked list of artwork IDs that match
-  "explanations": { [key: string]: string } // Map of artworkId -> Korean curator matching description
-}
-`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `사용자의 작품 희망 묘사: "${prompt}"\n\n위 묘사를 근거로 큐레이팅 된 매칭 작품들의 ID 리스트와 그 큐레이션 해설을 JSON 스키마로 작성해 주세요.`,
-        config: {
-          systemInstruction: systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              tags: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "추출된 작품 관련 핵심 감상 태그들",
-              },
-              matchedArtworkIds: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "가장 잘 어울리는 작품 ID들의 순위 리스트",
-              },
-              explanations: {
-                type: Type.OBJECT,
-                description: "각 작품 ID별로 사용자의 검색 묘사 및 무드에 어울리는 구체적인 한국어 큐레이션 매칭 설명",
-              }
-            },
-            required: ["tags", "matchedArtworkIds", "explanations"],
-          },
-        },
-      });
-
-      const responseText = response.text ? response.text.trim() : "";
-      console.log("Raw Response from Gemini Search Curation:", responseText);
-      const searchResult = safeJsonParse<{
-        tags?: string[];
-        matchedArtworkIds?: string[];
-        explanations?: Record<string, string>;
-      }>(responseText, {});
-
-      res.json({
-        tags: searchResult.tags || [],
-        matchedArtworkIds: searchResult.matchedArtworkIds || [],
-        explanations: searchResult.explanations || {},
-        isMocked: false,
-      });
-
-    } catch (err: any) {
-      console.error("Gemini AI Search API failed:", err);
-      // Fallback
-      const matches = localRuleBasedSearch(prompt);
-      res.json({ ...matches, isMocked: true, error: err.message });
-    }
+    const matches = localRuleBasedSearch(prompt);
+    res.json({ ...matches, isMocked: true });
   });
 
-  // API Route: AI Auto-tag generation for artists when uploading an artwork
-  app.post("/api/ai-autotag", async (req, res) => {
-    const { title, description } = req.body;
+  // API Route: Auto-tag generation for artists when uploading an artwork (rule-based)
+  app.post("/api/ai-autotag", (req, res) => {
+    const { title } = req.body;
     if (!title) {
       return res.status(400).json({ error: "작품 제목이 필요합니다." });
     }
-
-    const ai = getGeminiClient();
-    if (!ai) {
-      // Fallback rule based
-      const defaultTags = ["도예", "회화", "풍경", "인테리어", "현대미술", "인기작"].slice(0, 4);
-      return res.json({ tags: defaultTags, isMocked: true });
-    }
-
-    try {
-      console.log(`Generating AI Tags for: "${title}" via gemini-3.5-flash`);
-
-      const systemInstruction = `You are a meta-tagging engine for fine art pieces.
-Analyze the artwork title and author's description and generate 4-6 highly aesthetic, precise Korean keyword tags (such as '따뜻한', '고요한', '내출럴', '몽환적인', '추상', '기하학'). Do not include empty tags or generic terms like '예술' or '작품'.
-
-Output your response strictly as a JSON object of this structure:
-{
-  "tags": string[]
-}
-`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `제목: "${title}"\n설명: "${description || "설명 없음"}"\n\n위 작품에 어울리는 어울리는 핵심 태그 4-6개를 출력하세요.`,
-        config: {
-          systemInstruction: systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              tags: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-              },
-            },
-            required: ["tags"],
-          },
-        },
-      });
-
-      const tagsRes = safeJsonParse<{ tags?: string[] }>(response.text ? response.text.trim() : "", { tags: [] });
-      res.json({ tags: tagsRes.tags || [], isMocked: false });
-    } catch (e: any) {
-      console.error("AutoTag API Error:", e);
-      res.json({ tags: ["회화", "풍경", "따뜻한", "미니멀"], isMocked: true });
-    }
+    const defaultTags = ["도예", "회화", "풍경", "인테리어", "현대미술", "인기작"].slice(0, 4);
+    res.json({ tags: defaultTags, isMocked: true });
   });
 
   // ─── Iamhero AI 연동 ──────────────────────────────────────────────────────

@@ -48,9 +48,11 @@ export default function App() {
       ]);
       setArtworks(artworksData);
       setArtists(artistsData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load data:", err);
-      setLoadError({ message: err.message ?? "데이터를 불러오지 못했습니다.", code: err.status });
+      const message = err instanceof Error ? err.message : "데이터를 불러오지 못했습니다.";
+      const code = (err as { status?: number })?.status;
+      setLoadError({ message, code });
     } finally {
       setIsLoading(false);
     }

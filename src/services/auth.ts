@@ -28,7 +28,8 @@ interface MockUser {
 interface StoredUser {
   uid: string;
   email: string;
-  password: string;
+  /** btoa로 인코딩된 비밀번호 — 실제 인증 도입 시 서버측 해싱으로 교체 */
+  passwordHash: string;
   displayName: string;
   role: "user";
   createdAt: string;
@@ -124,7 +125,7 @@ export function login(email: string, password: string): UserSession {
   // 2. 가입된 유저 확인
   const storedUsers = getStoredUsers();
   const storedUser = storedUsers.find(
-    (u) => u.email.toLowerCase() === emailLower && u.password === password
+    (u) => u.email.toLowerCase() === emailLower && u.passwordHash === btoa(password)
   );
   if (storedUser) {
     const session: UserSession = {
@@ -159,7 +160,7 @@ export function register(email: string, password: string, displayName: string): 
   const newUser: StoredUser = {
     uid,
     email: emailLower,
-    password,
+    passwordHash: btoa(password),
     displayName: displayName.trim(),
     role: "user",
     createdAt: new Date().toISOString(),
