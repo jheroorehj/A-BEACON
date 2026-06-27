@@ -529,20 +529,17 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
     setRoomsLoading(true);
     setRoomsError(null);
     try {
-      // chatMode에 따라 내가 구매자인 방 or 내가 작가인 방만 조회
-      const buyerEmail = chatMode === "buyer" ? session.email : undefined;
-      const artistId = chatMode === "artist" ? session.artistId : undefined;
-      const data = await chatApi.getRooms(buyerEmail, artistId);
+      // 구매자 이메일 + 작가 ID 동시 전달 → 내가 참여한 모든 방 통합 조회
+      const data = await chatApi.getRooms(session.email, session.artistId);
       setRooms(data);
-    } catch (err: any) {
-      setRoomsError(err?.message ?? "대화 목록을 불러오지 못했습니다.");
+    } catch (err: unknown) {
+      setRoomsError(err instanceof Error ? err.message : "대화 목록을 불러오지 못했습니다.");
     } finally {
       setRoomsLoading(false);
     }
-  }, [chatMode, session.email, session.artistId]);
+  }, [session.email, session.artistId]);
 
   useEffect(() => {
-    // chatMode가 바뀌면 선택된 방 초기화 후 재로드
     setSelectedRoom(null);
     setMessages([]);
     fetchRooms();
@@ -785,9 +782,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#ebebeb] bg-[#f7f7f7] flex-shrink-0">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-[#ff385c]" />
-              <span className="text-sm font-bold text-[#222222]">
-                {chatMode === "artist" ? "작가 문의함" : "구매 문의함"}
-              </span>
+              <span className="text-sm font-bold text-[#222222]">채팅 & 거래</span>
               {!roomsLoading && (
                 <span className="text-xs text-[#6a6a6a] bg-[#ebebeb] px-1.5 py-0.5 rounded-full font-semibold">
                   {filteredRooms.length !== rooms.length
@@ -896,9 +891,9 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                 </div>
                 <p className="text-sm font-semibold text-[#6a6a6a]">아직 대화가 없습니다</p>
                 <p className="text-xs text-[#aaaaaa] text-center leading-relaxed">
-                  {chatMode === "artist"
-                    ? "컬렉터가 작품에 문의하면\n여기에 표시됩니다."
-                    : "작품을 탐색하고\n작가에게 문의해보세요."}
+                  작품을 탐색하고 작가에게 문의하거나,
+                  <br />
+                  컬렉터의 문의가 오면 여기에 표시됩니다.
                 </p>
               </div>
             ) : filteredRooms.length === 0 ? (

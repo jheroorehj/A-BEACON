@@ -55,39 +55,37 @@ export default function Navbar({
                 <LayoutDashboard className="h-4 w-4 text-[#ff385c]" />
                 <span>개발자 대시보드</span>
               </div>
-            ) : isChatActive ? (
-              /* 채팅 페이지 활성 */
-              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#6a6a6a]">
-                <MessageSquare className="h-4 w-4 text-[#ff385c]" />
-                <span>채팅 & 거래</span>
-              </div>
             ) : session.role === "artist" && onModeChange ? (
-              /* 작가 계정 전용: 고객 ↔ 작가 모드 토글 */
+              /* 작가 계정: 컬렉터 ↔ 작가 토글 — 채팅 중에도 항상 표시, 클릭 시 해당 모드 메인으로 이동 */
               <div className="flex border border-[#dddddd] p-1 rounded-full bg-[#f7f7f7] gap-0.5">
                 <button
                   onClick={() => onModeChange("buyer")}
                   className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer border-none ${
-                    currentMode === "buyer"
+                    currentMode === "buyer" && !isChatActive
                       ? "bg-[#ff385c] text-white shadow-sm"
                       : "text-[#6a6a6a] hover:text-[#222222] bg-transparent"
                   }`}
                 >
                   <Compass className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">컬렉터</span>
-                  <span className="sm:hidden">컬렉터</span>
+                  <span>컬렉터</span>
                 </button>
                 <button
                   onClick={() => onModeChange("artist")}
                   className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer border-none ${
-                    currentMode === "artist"
+                    currentMode === "artist" && !isChatActive
                       ? "bg-[#222222] text-white shadow-sm"
                       : "text-[#6a6a6a] hover:text-[#222222] bg-transparent"
                   }`}
                 >
                   <Palette className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">작가</span>
-                  <span className="sm:hidden">작가</span>
+                  <span>작가</span>
                 </button>
+              </div>
+            ) : isChatActive ? (
+              /* 일반 유저 채팅 활성 */
+              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#6a6a6a]">
+                <MessageSquare className="h-4 w-4 text-[#ff385c]" />
+                <span>채팅 & 거래</span>
               </div>
             ) : (
               /* 일반 고객: 탐색 고정 표시 */
