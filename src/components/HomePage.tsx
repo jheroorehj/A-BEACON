@@ -115,8 +115,13 @@ export default function HomePage({ onStart }: HomePageProps) {
             Our Story
           </p>
           <h2 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-12">
-            왜 A-BEACON을<br />만들었을까요?
+            A-BEACON은<br />작가들의 <span className="text-[#ff385c]">등대</span>입니다.
           </h2>
+          <p className="text-sm text-[#6a6a6a] font-light leading-relaxed max-w-xl mb-12 -mt-6">
+            BEACON은 항해자를 안전한 곳으로 이끄는 등대를 뜻합니다.
+            우리는 세상에 알려지지 않은 예술가들에게 빛을 비춰,
+            그들의 작품이 마땅한 사람에게 닿을 수 있도록 합니다.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-sm text-[#aaaaaa] font-light leading-relaxed mb-16">
             <div className="space-y-3">
