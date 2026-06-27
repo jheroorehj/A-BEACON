@@ -55,8 +55,8 @@ export default function LoginPage({ onLogin, onBack, onRegister }: LoginPageProp
   return (
     <div className="min-h-screen bg-[#ffffff] flex flex-col">
       {/* 상단 브랜드 바 */}
-      <header className="border-b border-[#ebebeb] px-6 sm:px-10 py-5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <header className="border-b border-[#ebebeb] px-8 sm:px-16 py-5">
+        <div className="flex items-center justify-between">
           <Logo size="md" />
           {onBack && (
             <button

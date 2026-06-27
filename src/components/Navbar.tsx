@@ -28,8 +28,8 @@ export default function Navbar({
   isChatActive,
 }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-50 bg-[#ffffff]/95 backdrop-blur-md border-b border-[#ebebeb] px-6 sm:px-10 py-5">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
+    <header className="sticky top-0 z-50 bg-[#ffffff]/95 backdrop-blur-md border-b border-[#ebebeb] px-8 sm:px-16 py-5">
+      <div className="flex justify-between items-center">
 
           {/* 로고 */}
           <div className="flex items-center gap-3">

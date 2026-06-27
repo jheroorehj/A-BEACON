@@ -46,8 +46,8 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
     <div className="min-h-screen bg-white text-[#222222]">
 
       {/* ── 상단 헤더 ── */}
-      <header className="border-b border-[#ebebeb] px-6 sm:px-10 py-5">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <header className="border-b border-[#ebebeb] px-8 sm:px-16 py-5">
+        <div className="flex items-center justify-between">
         <Logo size="md" />
         {session ? (
           <div className="flex items-center gap-4">
