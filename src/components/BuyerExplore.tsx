@@ -1009,90 +1009,95 @@ export default function BuyerExplore({
       )}
 
 
-      {/* Sub Drawer: SHOW DETAIL ARTWORK LIGHTBOX MODAL */}
+      {/* 작품 상세 모달 */}
       {selectedArtwork && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white max-w-4xl w-full flex flex-col md:flex-row overflow-hidden border border-black shadow-2xl animate-in fade-in zoom-in-95 duration-200 relative">
-            
-            {/* Close modal X */}
-            <button 
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white max-w-4xl w-full flex flex-col md:flex-row overflow-hidden rounded-2xl border border-[#ebebeb] shadow-xl animate-in fade-in zoom-in-95 duration-200 relative">
+
+            {/* 닫기 버튼 */}
+            <button
               onClick={() => setSelectedArtwork(null)}
-              className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-black hover:text-white p-2 border border-gray-200"
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 hover:bg-[#f7f7f7] border border-[#ebebeb] transition-all"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 text-[#222222]" />
             </button>
 
-            {/* Left: Huge high-resolution image */}
-            <div className="flex-1 bg-gray-50 relative group flex items-center justify-center min-h-[350px]">
+            {/* 왼쪽: 이미지 */}
+            <div className="flex-1 bg-[#f7f7f7] relative group flex items-center justify-center min-h-[320px]">
               <img
                 src={selectedArtwork.image}
                 alt={selectedArtwork.title}
                 referrerPolicy="no-referrer"
-                className="w-full h-full max-h-[580px] object-contain transition-transform duration-700 ease-in-out group-hover:scale-102"
+                className="w-full h-full max-h-[580px] object-contain transition-transform duration-700 ease-in-out group-hover:scale-[1.02]"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                   const parent = e.currentTarget.parentElement;
                   if (parent && !parent.querySelector(".img-fallback")) {
                     const fb = document.createElement("div");
-                    fb.className = "img-fallback flex flex-col items-center justify-center gap-3 text-gray-300 w-full h-full min-h-[350px]";
-                    fb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span style="font-size:12px;color:#bbb">이미지를 불러올 수 없습니다</span>';
+                    fb.className = "img-fallback flex flex-col items-center justify-center gap-3 text-[#cccccc] w-full h-full min-h-[320px]";
+                    fb.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span style="font-size:12px;color:#aaa">이미지를 불러올 수 없습니다</span>';
                     parent.appendChild(fb);
                   }
                 }}
               />
-              <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-xs px-3 py-1.5 text-white/90 text-xs font-mono font-bold">
+              {/* 사이즈 배지 */}
+              <div className="absolute bottom-4 left-4 bg-[#222222]/80 backdrop-blur-sm px-3 py-1.5 text-white text-xs font-mono rounded-full">
                 {selectedArtwork.dimensions}
               </div>
             </div>
 
-            {/* Right: Fine Art metadata sheet */}
-            <div className="w-full md:w-[380px] p-6 sm:p-8 flex flex-col justify-between border-l border-gray-200">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs bg-black text-white px-2 py-1 font-semibold tracking-wider font-mono">
+            {/* 오른쪽: 정보 패널 */}
+            <div className="w-full md:w-[380px] p-6 sm:p-8 flex flex-col justify-between border-l border-[#ebebeb]">
+              <div className="space-y-5">
+
+                {/* 카테고리 + 연도 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold tracking-wider text-[#ff385c] bg-[#ff385c]/8 px-2.5 py-1 rounded-full">
                     {selectedArtwork.category.toUpperCase()}
                   </span>
-                  <span className="text-xs font-mono text-gray-500 font-semibold">{selectedArtwork.year}년작</span>
+                  <span className="text-xs font-mono text-[#aaaaaa]">{selectedArtwork.year}년작</span>
                 </div>
 
+                {/* 제목 + 작가 */}
                 <div>
-                  <h1 className="font-sans font-black text-xl sm:text-2xl text-black leading-tight">
+                  <h1 className="font-black text-xl sm:text-2xl text-[#222222] leading-tight">
                     {selectedArtwork.title}
                   </h1>
-                  <p className="mt-1 font-sans text-sm text-gray-400 font-medium">{selectedArtwork.artistName}</p>
+                  <p className="mt-1 text-sm text-[#6a6a6a]">{selectedArtwork.artistName}</p>
                 </div>
 
-                <div className="py-3 border-y border-gray-100 space-y-1 text-xs">
+                {/* 스펙 */}
+                <div className="py-4 border-y border-[#ebebeb] space-y-2.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400 font-mono">매체 / 기법</span>
-                    <span className="text-black font-semibold font-sans">{selectedArtwork.medium}</span>
+                    <span className="text-[#aaaaaa] font-mono text-xs">매체 / 기법</span>
+                    <span className="text-[#222222] font-semibold text-xs text-right max-w-[180px]">{selectedArtwork.medium}</span>
                   </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-gray-400 font-mono">작품 크기</span>
-                    <span className="text-black font-semibold font-mono">{selectedArtwork.dimensions}</span>
+                  <div className="flex justify-between">
+                    <span className="text-[#aaaaaa] font-mono text-xs">작품 크기</span>
+                    <span className="text-[#222222] font-semibold font-mono text-xs">{selectedArtwork.dimensions}</span>
                   </div>
-                  <div className="flex justify-between mt-1">
-                    <span className="text-gray-400 font-mono">소장 가디언가(가제)</span>
-                    <span className="text-emerald-700 font-bold font-sans text-sm leading-none">{selectedArtwork.priceRange}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#aaaaaa] font-mono text-xs">가격</span>
+                    <span className="text-[#ff385c] font-extrabold text-base">{selectedArtwork.priceRange}</span>
                   </div>
                 </div>
 
-                {/* Artist mini card */}
+                {/* 작가 미니 카드 */}
                 {(() => {
                   const artArtist = artists.find((a) => a.id === selectedArtwork.artistId);
                   return (
-                    <div className="bg-gray-50 p-3 border border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center space-x-2.5">
+                    <div className="bg-[#f7f7f7] rounded-xl p-3 border border-[#ebebeb] flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
                         <img
                           src={artArtist?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"}
                           alt={selectedArtwork.artistName}
                           referrerPolicy="no-referrer"
-                          className="h-8 w-8 rounded-full object-cover border border-gray-200"
+                          className="h-9 w-9 rounded-full object-cover border border-[#ebebeb]"
                           onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"; }}
                         />
                         <div>
-                          <p className="text-xs font-bold text-black font-sans">{selectedArtwork.artistName}</p>
-                          <p className="text-[10px] text-gray-400">작가 프로필 공인인증 완료</p>
+                          <p className="text-sm font-bold text-[#222222]">{selectedArtwork.artistName}</p>
+                          <p className="text-[10px] text-[#aaaaaa]">인증된 작가</p>
                         </div>
                       </div>
                       <button
@@ -1100,10 +1105,10 @@ export default function BuyerExplore({
                           const matchedArtist = artists.find((a) => a.id === selectedArtwork.artistId);
                           if (matchedArtist) {
                             setSelectedArtistPortfolio(matchedArtist);
-                            setSelectedArtwork(null); // transition lock
+                            setSelectedArtwork(null);
                           }
                         }}
-                        className="text-[10px] font-sans font-bold bg-white text-black border border-gray-200 py-1 px-2 hover:bg-black hover:text-white transition-all shadow-sm"
+                        className="text-xs font-bold text-[#222222] bg-white border border-[#ebebeb] rounded-full px-3 py-1.5 hover:border-[#ff385c]/40 hover:text-[#ff385c] transition-all"
                       >
                         포트폴리오
                       </button>
@@ -1111,58 +1116,53 @@ export default function BuyerExplore({
                   );
                 })()}
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1">
+                {/* 태그 */}
+                <div className="flex flex-wrap gap-1.5">
                   {selectedArtwork.tags.map((t) => (
-                    <span key={t} className="text-[10px] font-mono text-gray-500 bg-gray-100 px-2.5 py-0.5">
+                    <span key={t} className="text-[10px] font-mono text-[#6a6a6a] bg-[#f7f7f7] border border-[#ebebeb] px-2.5 py-0.5 rounded-full">
                       #{t}
                     </span>
                   ))}
                 </div>
 
+                {/* 작품 설명 */}
                 <div>
-                  <h4 className="text-xs font-bold text-gray-600 font-sans">작품 상세 노트 및 수집가 안내:</h4>
-                  <p className="mt-1 text-xs text-gray-500 leading-relaxed font-light font-sans max-h-[140px] overflow-y-auto">
+                  <h4 className="text-xs font-bold text-[#222222] mb-1.5">작품 노트</h4>
+                  <p className="text-xs text-[#6a6a6a] leading-relaxed font-light max-h-[120px] overflow-y-auto">
                     {selectedArtwork.description}
                   </p>
                 </div>
               </div>
 
-              {/* Inquiry CTA block */}
-              <div className="mt-8 pt-4 border-t border-gray-200">
+              {/* CTA */}
+              <div className="mt-6 pt-5 border-t border-[#ebebeb] space-y-2">
                 <div className="flex gap-2">
+                  {/* 하트 버튼 */}
                   <button
-                    onClick={(e) => selectedArtwork && toggleLike(selectedArtwork.id, e)}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 border font-bold text-sm transition-all rounded-none shrink-0 ${
-                      selectedArtwork && likedIds.has(selectedArtwork.id)
-                        ? "border-[#ff385c] bg-[#ff385c]/5 text-[#ff385c]"
-                        : "border-gray-200 bg-white text-gray-400 hover:border-[#ff385c] hover:text-[#ff385c]"
+                    onClick={(e) => toggleLike(selectedArtwork.id, e)}
+                    className={`flex items-center justify-center px-4 py-3 rounded-full border font-bold transition-all shrink-0 ${
+                      likedIds.has(selectedArtwork.id)
+                        ? "border-[#ff385c] bg-[#ff385c]/8 text-[#ff385c]"
+                        : "border-[#ebebeb] bg-white text-[#aaaaaa] hover:border-[#ff385c]/50 hover:text-[#ff385c]"
                     }`}
-                    title={selectedArtwork && likedIds.has(selectedArtwork.id) ? "관심 해제" : "관심 작품 추가"}
+                    title={likedIds.has(selectedArtwork.id) ? "관심 해제" : "관심 작품 추가"}
                   >
-                    <Heart
-                      className={`h-5 w-5 ${
-                        selectedArtwork && likedIds.has(selectedArtwork.id)
-                          ? "fill-[#ff385c] text-[#ff385c]"
-                          : ""
-                      }`}
-                    />
+                    <Heart className={`h-5 w-5 ${likedIds.has(selectedArtwork.id) ? "fill-[#ff385c]" : ""}`} />
                   </button>
+                  {/* 문의 버튼 */}
                   <button
                     onClick={() => setShowInquiryModal(true)}
-                    className="flex-1 bg-black text-white py-3 font-sans font-bold text-sm tracking-wide flex items-center justify-center space-x-2 hover:bg-neutral-800 transition-all rounded-none"
+                    className="flex-1 bg-[#ff385c] hover:bg-[#e00b41] text-white font-bold text-sm rounded-full flex items-center justify-center gap-2 py-3 transition-all border-none"
                   >
                     <Mail className="h-4 w-4" />
-                    <span>작가에게 소장 문의 및 의사 전송</span>
+                    <span>소장 문의하기</span>
                   </button>
                 </div>
-                <p className="text-[10px] text-gray-400 text-center mt-1.5 font-sans leading-relaxed">
-                  본 플랫폼은 현장 직거래나 경매를 중독하지 않으며, 구매 희망자의 문의를 작가의 메일/계정 관리망으로 다이렉트 전송합니다.
+                <p className="text-[10px] text-[#aaaaaa] text-center leading-relaxed">
+                  중간 수수료 없이 작가에게 직접 전달됩니다.
                 </p>
               </div>
-
             </div>
-
           </div>
         </div>
       )}
