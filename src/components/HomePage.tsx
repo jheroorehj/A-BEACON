@@ -157,7 +157,6 @@ export default function HomePage({ onStart }: HomePageProps) {
             <p className="text-2xl sm:text-3xl font-medium text-white/70 leading-relaxed tracking-tight">
               그리고 좋은 작품을 찾는 일은 더 쉬워져야 합니다.
             </p>
-            <p className="mt-5 text-sm font-mono text-[#888888]">— A-BEACON 팀</p>
           </div>
         </div>
       </section>
