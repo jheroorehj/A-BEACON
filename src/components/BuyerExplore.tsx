@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Sparkles, Search, X, Mail, Layers,
   ZoomIn, ChevronRight, MessageCircle, CheckCircle2, Info, AlertTriangle,
-  Camera, ChevronDown, ChevronUp, ImagePlus
+  Camera, ChevronDown, ChevronUp, ImagePlus, Heart
 } from "lucide-react";
 import { Artwork, Artist, AISearchResult, ArtCategory } from "../types";
 import { searchApi, inquiriesApi, roomMatchApi, ApiError } from "../services/api";
@@ -38,7 +38,58 @@ export default function BuyerExplore({
   onOpenChat,
 }: BuyerExploreProps) {
   // Navigation tabs within Buyer Page
-  const [activeSubTab, setActiveSubTab] = useState<"catalog" | "stories">("catalog");
+  const [activeSubTab, setActiveSubTab] = useState<"catalog" | "wishlist" | "stories">("catalog");
+
+  // ─── 관심 작품 (좋아요) ──────────────────────────────────────────────────────
+  const likedStorageKey = `beacon_liked_${userEmail}`;
+  const [likedIds, setLikedIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(`beacon_liked_${userEmail}`);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const toggleLike = (artworkId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(artworkId)) next.delete(artworkId);
+      else next.add(artworkId);
+      localStorage.setItem(likedStorageKey, JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  // 관심 작품 목록
+  const likedArtworks = useMemo(
+    () => artworks.filter((a) => likedIds.has(a.id)),
+    [artworks, likedIds]
+  );
+
+  // 태그 기반 비슷한 분위기 추천 (관심 작품의 태그 합산 → 비관심 작품 점수화)
+  const recommendedArtworks = useMemo(() => {
+    if (likedIds.size === 0) return [];
+    const tagFreq = new Map<string, number>();
+    const likedCategories = new Set<string>();
+    artworks.filter((a) => likedIds.has(a.id)).forEach((a) => {
+      likedCategories.add(a.category);
+      a.tags.forEach((t) => tagFreq.set(t, (tagFreq.get(t) ?? 0) + 1));
+    });
+    return artworks
+      .filter((a) => !likedIds.has(a.id))
+      .map((a) => ({
+        artwork: a,
+        score:
+          a.tags.reduce((s, t) => s + (tagFreq.get(t) ?? 0), 0) +
+          (likedCategories.has(a.category) ? 0.5 : 0),
+      }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map((x) => x.artwork);
+  }, [artworks, likedIds]);
 
   // Core Search State
   const [naturalSearchQuery, setNaturalSearchQuery] = useState("");
@@ -265,7 +316,7 @@ export default function BuyerExplore({
             <p className="text-xs text-[#6a6a6a] font-mono tracking-wide uppercase mt-0.5">DISCOVER, APPRECIATE AND CONNECT FINE ARTISTS</p>
           </div>
 
-          {/* Airbnb style tab-switch */}
+          {/* tab-switch */}
           <div className="flex border border-[#dddddd] p-1 rounded-full bg-[#f7f7f7]" id="buyer-view-tabs">
             <button
               onClick={() => setActiveSubTab("catalog")}
@@ -274,15 +325,30 @@ export default function BuyerExplore({
                   ? "bg-[#ffffff] text-[#222222] shadow-xs"
                   : "text-[#6a6a6a] hover:text-[#222222]"
               }`}
-              id="tab-catalog-btn"
             >
               <span className="sm:hidden">카탈로그</span>
-              <span className="hidden sm:inline">작품 및 AI 발견 (Catalog)</span>
+              <span className="hidden sm:inline">작품 및 AI 발견</span>
+            </button>
+            <button
+              onClick={() => setActiveSubTab("wishlist")}
+              className={`flex items-center gap-1.5 px-4 sm:px-5 py-1.5 font-sans text-xs font-bold rounded-full tracking-tight transition-all ${
+                activeSubTab === "wishlist"
+                  ? "bg-[#ffffff] text-[#222222] shadow-xs"
+                  : "text-[#6a6a6a] hover:text-[#222222]"
+              }`}
+            >
+              <Heart className={`h-3 w-3 ${activeSubTab === "wishlist" ? "fill-[#ff385c] text-[#ff385c]" : ""}`} />
+              <span>관심 작품</span>
+              {likedIds.size > 0 && (
+                <span className="bg-[#ff385c] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                  {likedIds.size}
+                </span>
+              )}
             </button>
             <button
               onClick={() => {
                 setActiveSubTab("stories");
-                setAiResult(null); // Clear search overlay to focus on stories
+                setAiResult(null);
                 setActiveSelectedTags([]);
               }}
               className={`px-4 sm:px-5 py-1.5 font-sans text-xs font-bold rounded-full tracking-tight transition-all ${
@@ -290,16 +356,145 @@ export default function BuyerExplore({
                   ? "bg-[#ffffff] text-[#222222] shadow-xs"
                   : "text-[#6a6a6a] hover:text-[#222222]"
               }`}
-              id="tab-stories-btn"
             >
               <span className="sm:hidden">스토리</span>
-              <span className="hidden sm:inline">이달의 작가 스토리 (Stories)</span>
+              <span className="hidden sm:inline">이달의 작가 스토리</span>
             </button>
           </div>
         </div>
       </div>
 
-      {activeSubTab === "catalog" ? (
+      {activeSubTab === "wishlist" ? (
+        /* ── 관심 작품 탭 ── */
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {likedArtworks.length === 0 ? (
+            <div className="text-center py-24 bg-white border border-[#ebebeb] rounded-xl">
+              <Heart className="h-12 w-12 text-[#ebebeb] mx-auto mb-4" />
+              <p className="font-bold text-[#222222] text-lg">관심 작품이 없습니다.</p>
+              <p className="text-sm text-[#6a6a6a] mt-1 font-light">
+                카탈로그에서 마음에 드는 작품의 하트를 눌러보세요.
+              </p>
+              <button
+                onClick={() => setActiveSubTab("catalog")}
+                className="mt-6 px-5 py-2.5 bg-[#ff385c] text-white text-xs font-bold rounded-full hover:bg-[#e00b41] transition-all border-none cursor-pointer"
+              >
+                작품 탐색하러 가기
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* 관심 작품 목록 */}
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="font-bold text-lg text-[#222222] flex items-center gap-2">
+                  <Heart className="h-5 w-5 fill-[#ff385c] text-[#ff385c]" />
+                  관심 작품 <span className="text-[#aaaaaa] font-normal text-base">{likedArtworks.length}점</span>
+                </h3>
+              </div>
+              <div className="columns-1 sm:columns-2 lg:columns-3 gap-8 space-y-8 mb-16">
+                {likedArtworks.map((art) => (
+                  <div
+                    key={art.id}
+                    onClick={() => handleOpenArtwork(art)}
+                    className="break-inside-avoid bg-white border border-[#ebebeb] rounded-[14px] p-5 group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-[#ff385c]/40 flex flex-col justify-between relative"
+                  >
+                    <button
+                      onClick={(e) => toggleLike(art.id, e)}
+                      className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white rounded-full shadow-sm transition-all"
+                    >
+                      <Heart className="h-4 w-4 fill-[#ff385c] text-[#ff385c]" />
+                    </button>
+                    <div>
+                      <div className="relative overflow-hidden aspect-auto bg-[#f2f2f2] rounded-lg mb-4 min-h-[160px] flex items-center justify-center">
+                        <img
+                          src={art.image}
+                          alt={art.title}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-auto object-cover max-h-[460px] transition-transform duration-700 group-hover:scale-102 rounded-lg"
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        />
+                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center rounded-lg">
+                          <div className="p-3 bg-white/95 backdrop-blur-sm shadow-sm rounded-full">
+                            <ZoomIn className="h-4.5 w-4.5 text-[#222222]" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 mb-2 bg-[#f7f7f7] px-2.5 py-1 rounded-md w-max">
+                        <span className="text-[10px] font-bold tracking-wider text-[#ff385c]">{art.category.toUpperCase()}</span>
+                        <span className="text-[10px] font-mono font-medium text-[#6a6a6a]">{art.year}</span>
+                      </div>
+                      <h3 className="font-bold text-base text-[#222222] group-hover:text-[#ff385c] transition-colors leading-tight">{art.title}</h3>
+                      <p className="text-xs text-[#6a6a6a] mt-0.5">작가 {art.artistName}</p>
+                    </div>
+                    <div className="border-t border-[#ebebeb] pt-3.5 mt-4 flex items-center justify-between text-xs">
+                      <span className="text-[#6a6a6a] italic truncate max-w-[150px]">{art.medium}</span>
+                      <span className="font-extrabold text-[#222222] text-sm">{art.priceRange}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 비슷한 분위기 추천 */}
+              {recommendedArtworks.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-6">
+                    <Sparkles className="h-5 w-5 text-[#ff385c]" />
+                    <h3 className="font-bold text-lg text-[#222222]">비슷한 분위기 추천</h3>
+                    <span className="text-xs text-[#6a6a6a] font-mono bg-[#f7f7f7] px-2 py-0.5 rounded-full">
+                      관심 작품의 태그 분석 기반
+                    </span>
+                  </div>
+                  <div className="columns-1 sm:columns-2 lg:columns-3 gap-8 space-y-8">
+                    {recommendedArtworks.map((art) => (
+                      <div
+                        key={art.id}
+                        onClick={() => handleOpenArtwork(art)}
+                        className="break-inside-avoid bg-white border border-[#ebebeb] rounded-[14px] p-5 group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-[#ff385c]/40 flex flex-col justify-between relative"
+                      >
+                        <button
+                          onClick={(e) => toggleLike(art.id, e)}
+                          className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white rounded-full shadow-sm transition-all"
+                        >
+                          <Heart
+                            className={`h-4 w-4 transition-colors ${
+                              likedIds.has(art.id) ? "fill-[#ff385c] text-[#ff385c]" : "text-[#aaaaaa]"
+                            }`}
+                          />
+                        </button>
+                        <div>
+                          <div className="relative overflow-hidden aspect-auto bg-[#f2f2f2] rounded-lg mb-4 min-h-[160px] flex items-center justify-center">
+                            <img
+                              src={art.image}
+                              alt={art.title}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-auto object-cover max-h-[460px] transition-transform duration-700 group-hover:scale-102 rounded-lg"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center rounded-lg">
+                              <div className="p-3 bg-white/95 backdrop-blur-sm shadow-sm rounded-full">
+                                <ZoomIn className="h-4.5 w-4.5 text-[#222222]" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 mb-2 bg-[#f7f7f7] px-2.5 py-1 rounded-md w-max">
+                            <span className="text-[10px] font-bold tracking-wider text-[#ff385c]">{art.category.toUpperCase()}</span>
+                            <span className="text-[10px] font-mono font-medium text-[#6a6a6a]">{art.year}</span>
+                          </div>
+                          <h3 className="font-bold text-base text-[#222222] group-hover:text-[#ff385c] transition-colors leading-tight">{art.title}</h3>
+                          <p className="text-xs text-[#6a6a6a] mt-0.5">작가 {art.artistName}</p>
+                        </div>
+                        <div className="border-t border-[#ebebeb] pt-3.5 mt-4 flex items-center justify-between text-xs">
+                          <span className="text-[#6a6a6a] italic truncate max-w-[150px]">{art.medium}</span>
+                          <span className="font-extrabold text-[#222222] text-sm">{art.priceRange}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : activeSubTab === "catalog" ? (
         <>
           {/* Section 1: AI Natural Language Searching (Airbnb Warm/White Service Redesign) */}
           <section className="bg-[#f7f7f7] border-b border-[#ebebeb] text-[#222222] py-14 sm:py-20" id="ai-discover-section">
@@ -627,13 +822,27 @@ export default function BuyerExplore({
                           isAiBestMatched ? "ring-2 ring-[#ff385c] shadow-md relative" : ""
                         }`}
                       >
-                        {/* AI Match Badge (Airbnb floating style) */}
+                        {/* AI Match Badge */}
                         {isAiBestMatched && (
-                          <div className="absolute top-3 right-3 z-10 bg-[#ff385c] text-white text-[9px] font-sans tracking-wider uppercase font-bold px-3 py-1 flex items-center space-x-1 shadow-sm rounded-full">
+                          <div className="absolute top-3 left-3 z-10 bg-[#ff385c] text-white text-[9px] font-sans tracking-wider uppercase font-bold px-3 py-1 flex items-center space-x-1 shadow-sm rounded-full">
                             <Sparkles className="h-3 w-3 text-white" />
                             <span>curator's match</span>
                           </div>
                         )}
+                        {/* 하트 버튼 */}
+                        <button
+                          onClick={(e) => toggleLike(art.id, e)}
+                          className="absolute top-3 right-3 z-10 p-2 bg-white/90 hover:bg-white rounded-full shadow-sm transition-all"
+                          title={likedIds.has(art.id) ? "관심 해제" : "관심 작품 추가"}
+                        >
+                          <Heart
+                            className={`h-4 w-4 transition-colors ${
+                              likedIds.has(art.id)
+                                ? "fill-[#ff385c] text-[#ff385c]"
+                                : "text-[#aaaaaa]"
+                            }`}
+                          />
+                        </button>
 
                         <div>
                           {/* Image box (Rounded Top md token) */}
@@ -725,7 +934,7 @@ export default function BuyerExplore({
           </div>
         </>
       ) : (
-        /* Section 2: Emerging Artist Spotlight Stories */
+        /* ── 이달의 작가 스토리 탭 ── */
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="artist-spotlight-section">
           <div className="border-b border-gray-200 pb-4 mb-8">
             <h2 className="font-sans font-black text-2xl text-black">이달의 작가 &amp; 인터뷰</h2>
