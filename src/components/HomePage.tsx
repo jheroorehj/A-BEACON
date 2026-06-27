@@ -115,7 +115,7 @@ export default function HomePage({ onStart }: HomePageProps) {
             Our Story
           </p>
           <h2 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight mb-12">
-            A-BEACON은<br />작가들의 <span className="text-[#ff385c]">등대</span>입니다.
+            A-BEAC<span className="text-[#ff385c]">O</span>N은 작가들의 등대입니다.
           </h2>
           <p className="text-sm text-[#6a6a6a] font-light leading-relaxed max-w-xl mb-12 -mt-6">
             BEACON은 항해자를 안전한 곳으로 이끄는 등대를 뜻합니다.
