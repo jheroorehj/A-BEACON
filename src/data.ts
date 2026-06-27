@@ -1,0 +1,238 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { Artist, Artwork } from "./types";
+
+export const INITIAL_ARTISTS: Artist[] = [
+  {
+    id: "artist_1",
+    name: "김하늘 (Kim Ha-neul)",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    bio: "자연의 빛과 시간의 흐름을 캔버스 위에 겹겹이 쌓아 올리는 회화 작가입니다. 기억 너머 산과 바다의 잔상들을 따뜻한 파스텔톤과 부드럽고 두터운 유화 질감의 대비로 섬세하게 포착해 냅니다.",
+    keywords: ["따뜻한", "자연", "풍경", "파스텔톤", "유화질감", "기억", "바다"],
+    interviewQuestions: [
+      {
+        question: "작업을 시작하게 된 특별한 계기가 있나요?",
+        answer: "어린 시절 매일 마주하던 시골 마을의 무한한 변주의 하늘빛에 깊은 평화를 느꼈습니다. 바쁜 현대인들에게 그 찰나의 자연 속 치유의 색채를 묵묵히 공유해 주고 싶어 붓을 들기 시작했습니다."
+      },
+      {
+        question: "주로 파스텔 톤과 입체감(마티에르)을 함께 사용하는 이유는 무엇인가요?",
+        answer: "부드럽고 엷은 색이라 하더라도 물감이 지닌 물리적 두께감이 더해지면 강력한 실체적 존재감을 얻게 됩니다. 연약해 보이는 감정도 깊이 쌓이면 단단한 정신적 안식처가 된다는 것을 시각적으로 선언하고 싶었어요."
+      }
+    ],
+    email: "sky_h_kim@gmail.com"
+  },
+  {
+    id: "artist_2",
+    name: "이민우 (Lee Min-woo)",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+    bio: "물성의 경계를 실험하는 조각가로, 현대 도시의 인공 구조 속에 숨겨진 기하학적 미학을 금속, 돌, 빛 등의 산업 재료 결합을 통해 정교하게 설계해 냅니다.",
+    keywords: ["기하학", "구조적", "조소", "차가운", "입체", "대비", "미니멀"],
+    interviewQuestions: [
+      {
+        question: "차가운 하드웨어를 예술의 형태로 승화할 때 가장 집중하는 것은?",
+        answer: "소재가 지닌 본래의 쓸모를 완전하게 거세하는 일입니다. 철골이나 거친 건축용 석재가 지지대 역할을 멈추고 온전히 하나의 긴장감 있는 '형체'로 공중에 붕 뜰 때 나타나는 숭고한 침묵에 집중합니다."
+      },
+      {
+        question: "관객들이 본인의 조각품을 통해 어떤 것을 발견하길 바라나요?",
+        answer: "일상적인 공간 설계에 숨은 질서와 비틀림입니다. 대칭이 무너지는 임계점을 보며 불안과 동시에 쾌감을 느끼는 감정의 양면성을 포착하셨으면 좋겠습니다."
+      }
+    ],
+    email: "minwoo_lee_art@naver.com"
+  },
+  {
+    id: "artist_3",
+    name: "최다은 (Choi Da-eun)",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+    bio: "몽환적인 빛과 어둠을 담아내는 사진 및 미디어 아티스트입니다. 밤의 한복판에 서서 미묘하게 번지는 불꽃의 순간, 소음이 소각된 조용한 주택가의 정취를 극도로 긴 노출을 통해 몽환적으로 박제합니다.",
+    keywords: ["정적인", "도시야경", "몽환적인", "빛의번짐", "사진", "노출", "고요한"],
+    interviewQuestions: [
+      {
+        question: "사진 작업 시 디지털 카메라 대신 필름을 고수하시는 특별한 편애가 있나요?",
+        answer: "필름은 빛의 알갱이가 화학적 필름지 위에 물리적으로 부딪혀 스며드는 흔적입니다. 제가 머물던 시간 속 고독의 공기가 입자로 환원되는 듯한 질감을 줄 수 있어 디지털이 줄 수 없는 숨소리를 표현합니다."
+      },
+      {
+        question: "대부분의 사진이 밤을 기점으로 촬영되는 이유는 무엇입니까?",
+        answer: "빛의 진짜 온도는 완전히 어두운 암흑 속에 있을 때 정체를 제대로 드러내기 때문입니다. 가로등 단 하나의 황색 광원이 밤 안개에 휘감겨 나타나는 외로움의 따스함은 오직 밤에만 마주할 수 있습니다."
+      }
+    ],
+    email: "da_eun_photo@daum.net"
+  },
+  {
+    id: "artist_4",
+    name: "박지훈 (Park Ji-hoon)",
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+    bio: "아날로그 회화의 규칙성과 디지털 알고리즘의 유동성을 결합하는 뉴미디어 아트 작가입니다. 수학적인 자연의 프랙탈 생태 구조를 제너러티브 아트 및 디지털 크롬 캔버스로 변환하여 생명감을 투사합니다.",
+    keywords: ["디지털", "미디어아트", "형형색색", "알고리즘", "네온", "추상", "사이버"],
+    interviewQuestions: [
+      {
+        question: "개발 영역의 코딩(코딩 아트)을 순수 미술의 범주로 보시는 시각은?",
+        answer: "코드는 오늘날 인류가 세상을 인식하는 가장 지배적인 질서이자 붓입니다. 정적인 페인트를 통제하는 것 이상으로, 매 시간마다 무한히 스스로 증식하는 유동성 회화를 짜낼 수 있는 가장 아름다운 매체입니다."
+      }
+    ],
+    email: "jihoon_codes_art@gmail.com"
+  },
+  {
+    id: "artist_5",
+    name: "정서우 (Jung Seo-woo)",
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80",
+    bio: "전통 가마의 한계적 유약을 부수고, 대지에서 채취한 거친 태토와 현대적인 비대칭 뒤틀림을 주무르는 현대 실용형 세라믹 예술(공예)가입니다. 통제 불가능한 높은 온도 속 불꽃이 빚어낸 흔적을 작업의 본질로 바라봅니다.",
+    keywords: ["공예", "도예", "내추럴", "거친흙", "비대칭", "소박한", "동양미"],
+    interviewQuestions: [
+      {
+        question: "공예를 할 때 도안대로 정확히 밀착하기보단 비틀린 구조를 자주 탄생시키시는데?",
+        answer: "완벽하게 둥글고 매끈한 백자는 우리에게 차가움을 줍니다. 대지에서 나온 흙은 본래 울퉁불퉁하고 거칠기에, 가마 속에서 스스로 주저앉으며 찾아낸 자연스러운 휘어짐을 보존해 주는 것이 공예가의 겸양입니다."
+      }
+    ],
+    email: "seowoo_earth_art@gmail.com"
+  }
+];
+
+export const INITIAL_ARTWORKS: Artwork[] = [
+  {
+    id: "art_1",
+    title: "노을빛 온기가 머무는 해안",
+    artistId: "artist_1",
+    artistName: "김하늘 (Kim Ha-neul)",
+    image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
+    description: "해가 질 무렵, 바다 위에 번지는 짙은 감홍색과 부드러운 분홍빛 노을의 찬란한 순간을 그렸습니다. 두터운 나이프 터치로 파도의 거친 흰 포말을 입체적으로 강조하여 바다의 숨결이 손끝에 닿을 듯합니다.",
+    category: "Painting",
+    tags: ["따뜻한", "바다", "노을", "임파스토", "풍경화", "분홍"],
+    year: 2025,
+    medium: "Oil on Canvas",
+    dimensions: "90.9 x 72.7 cm (30호)",
+    priceRange: "₩2,800,000"
+  },
+  {
+    id: "art_2",
+    title: "고요한 아침의 푸른 흔적",
+    artistId: "artist_1",
+    artistName: "김하늘 (Kim Ha-neul)",
+    image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&auto=format&fit=crop&q=80",
+    description: "새벽안개 속에 아스라히 흐려지는 깊은 산자락과 첫 이슬에 젖은 푸른 들판의 대기를 추상화했습니다. 겹겹이 쌓아 올린 하늘색 아크릴 위로 얇은 유화 오일을 덧발라 신비로운 아침의 공간감을 연출했습니다.",
+    category: "Painting",
+    tags: ["차분한", "푸른색", "아침안개", "풍경화", "치유", "수채느낌"],
+    year: 2026,
+    medium: "Acrylic and Oil on Canvas",
+    dimensions: "60.6 x 60.6 cm",
+    priceRange: "₩1,600,000",
+    featured: true
+  },
+  {
+    id: "art_3",
+    title: "유기적 질서와 대립하는 타원",
+    artistId: "artist_2",
+    artistName: "이민우 (Lee Min-woo)",
+    image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=800&auto=format&fit=crop&q=80",
+    description: "산소 절단기로 러프하게 가공된 철제 프레임 중앙에 완벽치 않은 타원형 매트 블루 레진 피스를 박아 넣은 용접 조각 조형입니다. 차가운 산업용 소재들이 부딪칠 때 도출해 내는 순수 기하학의 대치를 그립니다.",
+    category: "Sculpture",
+    tags: ["기하학", "철조", "미니멀", "추상조각", "차가운", "공간감"],
+    year: 2025,
+    medium: "Welded Steel and Cast Colored Resin",
+    dimensions: "120 x 45 x 180 (h) cm",
+    priceRange: "₩4,500,000",
+    featured: true
+  },
+  {
+    id: "art_4",
+    title: "도심 속 숨죽인 사각 기둥",
+    artistId: "artist_2",
+    artistName: "이민우 (Lee Min-woo)",
+    image: "https://images.unsplash.com/photo-1549887534-1541e9326642?w=800&auto=format&fit=crop&q=80",
+    description: "흑석고와 아노다이징 알루미늄 판을 수평으로 단단히 교차 결합하여 만든 데스크톱 스케일 조형물입니다. 빌딩 숲의 기하학적 그리드가 인가하는 무언의 압박감과 정교성을 축소판으로 담아냅니다.",
+    category: "Sculpture",
+    tags: ["구조적", "조소", "석고", "무채색", "빌딩", "인공미"],
+    year: 2024,
+    medium: "Hydrocal plaster and Anodized Aluminum",
+    dimensions: "40 x 40 x 95 cm",
+    priceRange: "₩1,900,000"
+  },
+  {
+    id: "art_5",
+    title: "빛의 이명 (Tinnitus of Luminescence)",
+    artistId: "artist_3",
+    artistName: "최다은 (Choi Da-eun)",
+    image: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=800&auto=format&fit=crop&q=80",
+    description: "공장의 화려한 야간 전기 시설에서 분출되는 강렬한 형광 나트륨 불빛들을 과감하게 디포커싱한 실험적 파인아트 사진 인화 작품입니다. 망막 속에 찌르르하고 남는 밤의 에너지 잔상을 기록했습니다.",
+    category: "Photography",
+    tags: ["형형색색", "빛의번짐", "네온사인", "몽환적인", "밤시간", "장노출"],
+    year: 2025,
+    medium: "Archival Pigment Print on Hahnemühle Paper",
+    dimensions: "110 x 85 cm (Edition 1 of 5)",
+    priceRange: "₩1,200,000",
+    featured: true
+  },
+  {
+    id: "art_6",
+    title: "오후 세 시의 부재 (The Missing 15:00)",
+    artistId: "artist_3",
+    artistName: "최다은 (Choi Da-eun)",
+    image: "https://images.unsplash.com/photo-1494438639946-1ebd1d2038b5?w=800&auto=format&fit=crop&q=80",
+    description: "아무도 머물지 않는 화이트 톤의 단칸방 구석, 스탠드 등 하나가 켜져 있고 햇빛이 가늘게 문틈으로 부서지는 구도를 담은 고요 기류의 실내 사진입니다. 일순간 정적에 사로잡힌 현대 도시인의 빈 방을 대변합니다.",
+    category: "Photography",
+    tags: ["고요한", "정적인", "미니멀", "방안", "외로움", "자연광도예"],
+    year: 2026,
+    medium: "Silver Gelatin Print on Baryta Paper",
+    dimensions: "80 x 80 cm (Edition 3 of 10)",
+    priceRange: "₩950,000"
+  },
+  {
+    id: "art_7",
+    title: "염색체 알고리즘 07B (Generative Fluids)",
+    artistId: "artist_4",
+    artistName: "Park Ji-hoon (박지훈)",
+    image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800&auto=format&fit=crop&q=80",
+    description: "관람객의 수동적 제스처 신호를 유체 역학 그래픽 카드 소스 코드와 연동하여 실시간으로 흘러내리도록 제작한 미디어아트의 대표 고정 프레임 고해상도 인쇄 본판입니다. 유기물 같은 기묘한 색광 조합을 발산합니다.",
+    category: "Media Art",
+    tags: ["디지털", "알고리즘", "네온", "유체", "형형색색", "다이내믹"],
+    year: 2025,
+    medium: "Generative Art Frame / High Gloss Acrylic Face-mount Print",
+    dimensions: "100 x 100 cm (Edition 1 of 3)",
+    priceRange: "₩3,100,000"
+  },
+  {
+    id: "art_8",
+    title: "침묵 속에 번식하는 정교한 선들",
+    artistId: "artist_4",
+    artistName: "Park Ji-hoon (박지훈)",
+    image: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80",
+    description: "노이즈 알고리즘을 반복 적층하여 수백만 개의 미세기하학적 흑백 실선들이 원 모양의 동심원을 타고 소용돌이치게 연출한 미디어 스틸 작업입니다. 무한히 반복되는 수학적 프랙탈 자연을 표상합니다.",
+    category: "Media Art",
+    tags: ["미니멀", "알고리즘", "흑백", "원형", "디지털아트", "정적선"],
+    year: 2026,
+    medium: "UltraChrome Giclée Print on Fine Art Canvas",
+    dimensions: "150 x 100 cm",
+    priceRange: "₩2,200,000"
+  },
+  {
+    id: "art_9",
+    title: "대지가 준 흔들림 (Terra Oscillation No. 4)",
+    artistId: "artist_5",
+    artistName: "정서우 (Jung Seo-woo)",
+    image: "https://images.unsplash.com/photo-1576016770956-debb63d900ad?w=800&auto=format&fit=crop&q=80",
+    description: "충남 당진의 정제되지 않은 백토벌과 붉은 산옹토를 배합하여 만든 비대칭 세라믹 화병입니다. 전통 장작 가마의 소성 온도 편차가 고스란히 가라앉아 표면에 자연 발생적인 나뭇재 질감과 균열선이 새겨져 있습니다.",
+    category: "Craft",
+    tags: ["공예", "도예", "소박한", "거친질감", "동양미", "크림색", "비대칭"],
+    year: 2025,
+    medium: "Wood-fired Stoneware with Natural Ash Glaze",
+    dimensions: "28 x 26 x 38 (h) cm",
+    priceRange: "₩1,400,000",
+    featured: true
+  },
+  {
+    id: "art_10",
+    title: "돌의 탄생과 유약의 잔해",
+    artistId: "artist_5",
+    artistName: "정서우 (Jung Seo-woo)",
+    image: "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=800&auto=format&fit=crop&q=80",
+    description: "조약돌의 납작함에서 영감을 얻은 타원 형태의 세라믹 디쉬 오브제입니다. 검은 유약에 굵은 강모래 소금을 흩뿌려 구움으로써 표면에 가마 화염의 검댕과 하얀 소금꽃 침착이 회화적으로 어우러져 있습니다.",
+    category: "Craft",
+    tags: ["공예", "오브제", "검정", "소박한", "도예", "대지의질감"],
+    year: 2026,
+    medium: "Iron-rich reduction-fired Clay with Salt-wash Glaze",
+    dimensions: "35 x 30 x 8 cm",
+    priceRange: "₩800,000"
+  }
+];

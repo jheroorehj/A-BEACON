@@ -1,0 +1,6 @@
+{
+  "name": "A-BEACON",
+  "description": "작가의 등대가 되어주는 신진작가 큐레이션 및 AI 작품 탐색 플랫폼",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
