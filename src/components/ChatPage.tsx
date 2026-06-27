@@ -695,6 +695,8 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const prevMsgCountRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isComposingRef = useRef(false);
@@ -782,8 +784,22 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
   }, [selectedRoom, fetchMessages]);
 
   // ─── 자동 스크롤 ──────────────────────────────────────────────────────────
-
+  // 조건: 메시지 수가 증가(새 메시지)했고, 사용자가 하단 150px 이내일 때만 스크롤.
+  // - 폴링 갱신(같은 수) / 견적서 수락·거절(map → 같은 수) 시 스크롤 안 함.
   useEffect(() => {
+    const newCount = messages.length;
+    const prevCount = prevMsgCountRef.current;
+    prevMsgCountRef.current = newCount;
+
+    if (newCount <= prevCount) return; // 메시지 수 변화 없음 → 스크롤 안 함
+
+    const container = messagesContainerRef.current;
+    if (container && newCount > 1) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      if (distanceFromBottom > 150) return; // 위로 스크롤 중 → 방해하지 않음
+    }
+
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -1305,7 +1321,7 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
               />
 
               {/* 메시지 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 bg-white min-h-0">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 bg-white min-h-0">
                 {messagesLoading ? (
                   <div className="flex flex-col items-center justify-center h-full gap-3">
                     <div className="h-6 w-6 border-2 border-[#ff385c] border-t-transparent rounded-full animate-spin" />
