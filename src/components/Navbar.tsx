@@ -54,8 +54,8 @@ export default function Navbar({
                 <LayoutDashboard className="h-4 w-4 text-[#ff385c]" />
                 <span>개발자 대시보드</span>
               </div>
-            ) : onModeChange ? (
-              /* 모든 로그인 유저: 컬렉터 ↔ 작가 토글 */
+            ) : onModeChange && session.role === "artist" ? (
+              /* 작가 계정: 컬렉터 ↔ 작가 토글 */
               <div className="flex border border-[#dddddd] p-1 rounded-full bg-[#f7f7f7] gap-0.5">
                 <button
                   onClick={() => onModeChange("buyer")}
@@ -79,6 +79,12 @@ export default function Navbar({
                   <Palette className="h-3.5 w-3.5" />
                   <span>작가</span>
                 </button>
+              </div>
+            ) : (session.role as string) === "buyer" ? (
+              /* 일반 구매자: 컬렉터 표시만 */
+              <div className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-[#ff385c]">
+                <Compass className="h-3.5 w-3.5" />
+                <span>컬렉터</span>
               </div>
             ) : null}
           </div>

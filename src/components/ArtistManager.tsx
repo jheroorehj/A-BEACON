@@ -5,13 +5,14 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Plus, Trash2, Mail, Save, Image, Sparkles,
-  FileText, Check, FileCheck, Tag, Layers, RefreshCw,
-  BookOpen, Download, Award, Info, Calendar, DollarSign, ExternalLink, ArrowRight, CheckCircle2,
-  Briefcase, AlertCircle
+  Plus, Trash2, Mail, Save, Sparkles,
+  FileText, Check, FileCheck, Layers, RefreshCw,
+  BookOpen, Download, DollarSign, ExternalLink, ArrowRight, CheckCircle2,
+  AlertCircle, ChevronUp, ChevronDown, Eye, Palette
 } from "lucide-react";
-import { Artwork, Artist, UserInquiry, ArtCategory, TradeStatus } from "../types";
+import { Artwork, Artist, UserInquiry, ArtCategory, ArtistCard, ProfileBlock, ProfileBlockType, CardArchetype } from "../types";
 import { artistsApi, artworksApi, inquiriesApi, searchApi, ApiError } from "../services/api";
+import { ArtistCardRender, getCardConfig } from "./ArtistCardRender";
 
 interface ArtistManagerProps {
   artworks: Artwork[];
@@ -43,6 +44,27 @@ export default function ArtistManager({
   const [profileAvatar, setProfileAvatar] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [saveProfileSuccess, setSaveProfileSuccess] = useState(false);
+
+  // ── 카드 빌더 상태 ─────────────────────────────────────────────────────────
+  const [cardStep, setCardStep] = useState<1 | 2 | 3>(1);
+  const [cardArchetype, setCardArchetype] = useState<CardArchetype>("cover");
+  const [cardImage, setCardImage] = useState("");
+  const [cardHeadline, setCardHeadline] = useState("");
+  const [cardQuote, setCardQuote] = useState("");
+  const [cardBgColor, setCardBgColor] = useState("#1a1a1a");
+  const [cardAccentColor, setCardAccentColor] = useState("#ff385c");
+  const [cardTextColor, setCardTextColor] = useState<"white" | "black">("white");
+  const [cardShowSchool, setCardShowSchool] = useState(true);
+  const [cardShowMedium, setCardShowMedium] = useState(true);
+  const [isSavingCard, setIsSavingCard] = useState(false);
+  const [saveCardSuccess, setSaveCardSuccess] = useState(false);
+  const [showCardPreview, setShowCardPreview] = useState(true);
+
+  // ── 프로필 블록 상태 ────────────────────────────────────────────────────────
+  const [profileBlocks, setProfileBlocks] = useState<ProfileBlock[]>([]);
+  const [isSavingBlocks, setIsSavingBlocks] = useState(false);
+  const [saveBlocksSuccess, setSaveBlocksSuccess] = useState(false);
+  const [showBlocksSection, setShowBlocksSection] = useState(false);
 
   // Artwork Upload Form fields
   const [artTitle, setArtTitle] = useState("");
@@ -96,6 +118,22 @@ export default function ArtistManager({
       setProfileEmail(data.email);
       setProfileAvatar(data.avatar);
       setProfileKeywordsText(data.keywords.join(", "));
+      // 카드 빌더 초기화
+      if (data.card) {
+        setCardArchetype(data.card.archetype);
+        setCardImage(data.card.image);
+        setCardHeadline(data.card.headline);
+        setCardQuote(data.card.quote);
+        setCardBgColor(data.card.bgColor);
+        setCardAccentColor(data.card.accentColor);
+        setCardTextColor(data.card.textColor);
+        setCardShowSchool(data.card.showBadges.school);
+        setCardShowMedium(data.card.showBadges.medium);
+      }
+      // 프로필 블록 초기화
+      if (data.profileBlocks) {
+        setProfileBlocks([...data.profileBlocks].sort((a, b) => a.order - b.order));
+      }
     } catch (e) {
       console.error("Fetch profile failed:", e);
     }
@@ -141,6 +179,73 @@ export default function ArtistManager({
     } finally {
       setIsSavingProfile(false);
     }
+  };
+
+  // ── 카드 저장 ──────────────────────────────────────────────────────────────
+  const handleSaveCard = async () => {
+    setIsSavingCard(true);
+    setSaveCardSuccess(false);
+    const card: ArtistCard = {
+      archetype: cardArchetype,
+      image: cardImage || profileAvatar,
+      headline: cardHeadline,
+      quote: cardQuote,
+      bgColor: cardBgColor,
+      accentColor: cardAccentColor,
+      textColor: cardTextColor,
+      showBadges: { school: cardShowSchool, medium: cardShowMedium, year: false },
+    };
+    try {
+      await artistsApi.update(selectedArtistId, { card } as any);
+      setSaveCardSuccess(true);
+      fetchArtistProfile();
+      setTimeout(() => setSaveCardSuccess(false), 2000);
+    } catch (e) {
+      console.error("Card save error:", e);
+    } finally {
+      setIsSavingCard(false);
+    }
+  };
+
+  // ── 블록 저장 ──────────────────────────────────────────────────────────────
+  const handleSaveBlocks = async () => {
+    setIsSavingBlocks(true);
+    setSaveBlocksSuccess(false);
+    try {
+      await artistsApi.update(selectedArtistId, { profileBlocks } as any);
+      setSaveBlocksSuccess(true);
+      setTimeout(() => setSaveBlocksSuccess(false), 2000);
+    } catch (e) {
+      console.error("Blocks save error:", e);
+    } finally {
+      setIsSavingBlocks(false);
+    }
+  };
+
+  const addBlock = (type: ProfileBlockType) => {
+    const newBlock: ProfileBlock = {
+      id: `pb_${Date.now()}`,
+      type,
+      order: profileBlocks.length,
+      config: {},
+    };
+    setProfileBlocks((prev) => [...prev, newBlock]);
+  };
+
+  const removeBlock = (id: string) => {
+    setProfileBlocks((prev) => prev.filter((b) => b.id !== id).map((b, i) => ({ ...b, order: i })));
+  };
+
+  const moveBlock = (id: string, dir: "up" | "down") => {
+    setProfileBlocks((prev) => {
+      const idx = prev.findIndex((b) => b.id === id);
+      if (dir === "up" && idx === 0) return prev;
+      if (dir === "down" && idx === prev.length - 1) return prev;
+      const next = [...prev];
+      const swap = dir === "up" ? idx - 1 : idx + 1;
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next.map((b, i) => ({ ...b, order: i }));
+    });
   };
 
   // AI Autotagger triggered during upload
@@ -543,90 +648,324 @@ export default function ArtistManager({
         {activeTab === "portfolio" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 animate-fade-in" id="portfolio-tab-section">
             
-            {/* Left Column: Profile and Artwork publish forms */}
-            <div className="lg:col-span-1 space-y-10" id="artist-settings-pane">
-              
-              {/* Profile Form card */}
-              <div className="bg-white border border-gray-200 p-6 shadow-sm">
-                <h2 className="font-sans font-extrabold text-lg text-black mb-6 flex items-center space-x-2 border-b border-gray-100 pb-3">
-                  <Briefcase className="h-5 w-5 text-gray-400" />
-                  <span>작가 프로필 / 포트폴리오 정보</span>
-                </h2>
+            {/* Left Column: Card Builder + Blocks + Artwork upload */}
+            <div className="lg:col-span-1 space-y-6" id="artist-settings-pane">
 
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">작가명 (한영 병기제언)</label>
-                    <input
-                      type="text"
-                      required
-                      value={profileName}
-                      onChange={(e) => setProfileName(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-sans"
-                    />
-                  </div>
+              {/* ── 카드 빌더 ─────────────────────────────────────────────── */}
+              <div className="bg-white border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <h2 className="font-sans font-extrabold text-base text-black flex items-center gap-2">
+                    <Palette className="h-4 w-4 text-[#ff385c]" />
+                    홈 카드 꾸미기
+                  </h2>
+                  <button
+                    onClick={() => setShowCardPreview((v) => !v)}
+                    className="text-[10px] font-mono text-gray-400 hover:text-black flex items-center gap-1"
+                  >
+                    <Eye className="h-3 w-3" />
+                    {showCardPreview ? "미리보기 닫기" : "미리보기"}
+                  </button>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">인증 보관 수신용 이메일</label>
-                    <input
-                      type="email"
-                      required
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-mono"
-                    />
-                  </div>
+                {/* Step tabs */}
+                <div className="flex border-b border-gray-100">
+                  {([1, 2, 3] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setCardStep(s)}
+                      className={`flex-1 py-2.5 text-xs font-bold transition-colors ${cardStep === s ? "text-[#ff385c] border-b-2 border-[#ff385c]" : "text-gray-400 hover:text-black"}`}
+                    >
+                      {s === 1 ? "01 · 형태" : s === 2 ? "02 · 내용" : "03 · 색상"}
+                    </button>
+                  ))}
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">작가 아바타 / 프로필 이미지 링크</label>
-                    <input
-                      type="text"
-                      required
-                      value={profileAvatar}
-                      onChange={(e) => setProfileAvatar(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">핵심 미학 키워드 (쉼표 구분)</label>
-                    <input
-                      type="text"
-                      value={profileKeywordsText}
-                      onChange={(e) => setProfileKeywordsText(e.target.value)}
-                      placeholder="따뜻한, 자연, 풍경화, 소박한"
-                      className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-sans"
-                    />
-                    <span className="text-[10px] text-gray-400 mt-1 block">AI 검색 시 작가 매핑을 활성화하는 기반입니다.</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">대표 작가 소개 및 바이오</label>
-                    <textarea
-                      rows={4}
-                      required
-                      value={profileBio}
-                      onChange={(e) => setProfileBio(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-200 p-3 text-xs text-black focus:bg-white focus:border-black font-sans leading-relaxed"
-                    />
-                  </div>
-
-                  {saveProfileSuccess && (
-                    <div className="p-3 bg-emerald-50 text-emerald-800 text-xs flex items-center space-x-1.5">
-                      <Check className="h-4 w-4" />
-                      <span>작가 프로필 서버 저장 완료!</span>
+                <div className="p-5 space-y-4">
+                  {/* STEP 1: Archetype */}
+                  {cardStep === 1 && (
+                    <div className="space-y-3">
+                      <p className="text-xs text-gray-500 font-light">카드 레이아웃 형태를 선택하세요.</p>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {(["cover","editorial","manifesto","portrait","quote"] as CardArchetype[]).map((arch) => {
+                          const labels: Record<CardArchetype, string> = { cover: "COVER", editorial: "EDIT", manifesto: "MANI", portrait: "PORT", quote: "QUOTE" };
+                          const descs: Record<CardArchetype, string> = { cover: "세로형\n이미지 전면", editorial: "가로형\n좌이미지", manifesto: "타이포\n중심", portrait: "인터뷰\n형식", quote: "인용구\n전면" };
+                          return (
+                            <button
+                              key={arch}
+                              onClick={() => setCardArchetype(arch)}
+                              className={`p-2 border-2 text-center transition-all rounded-sm ${cardArchetype === arch ? "border-[#ff385c] bg-[#fff5f6]" : "border-gray-200 hover:border-gray-400"}`}
+                            >
+                              <div className="text-[8px] font-mono font-black text-[#ff385c]">{labels[arch]}</div>
+                              <div className="text-[8px] text-gray-400 mt-0.5 whitespace-pre-line leading-tight">{descs[arch]}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button onClick={() => setCardStep(2)} className="w-full mt-2 bg-black text-white py-2 text-xs font-bold hover:bg-neutral-800 transition-colors">
+                        다음: 내용 입력 →
+                      </button>
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={isSavingProfile}
-                    className="w-full bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-600 transition-colors py-2.5 font-bold text-xs tracking-wider flex items-center justify-center space-x-1.5 rounded-none"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>{isSavingProfile ? "저장 처리 중..." : "프로필 변경 저장"}</span>
-                  </button>
-                </form>
+                  {/* STEP 2: Content */}
+                  {cardStep === 2 && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">대표 이미지 URL</label>
+                        <input
+                          type="text"
+                          value={cardImage}
+                          onChange={(e) => setCardImage(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-mono"
+                        />
+                        <span className="text-[10px] text-gray-400">비워두면 프로필 이미지 사용</span>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">
+                          헤드라인 — {cardArchetype === "manifesto" ? "작가를 한마디로" : cardArchetype === "quote" ? "부제 (표시 안됨)" : "한 줄 소개"}
+                        </label>
+                        <input
+                          type="text"
+                          value={cardHeadline}
+                          onChange={(e) => setCardHeadline(e.target.value)}
+                          placeholder="예: 고향 하늘을 닮은 빛깔로"
+                          className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-sans"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">
+                          인용구 — {cardArchetype === "quote" ? "카드 전면에 크게 표시됩니다" : "카드 하단 작은 글씨"}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={cardQuote}
+                          onChange={(e) => setCardQuote(e.target.value)}
+                          placeholder="인터뷰에서 가장 인상적인 한 마디"
+                          className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-sans resize-none"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => setCardStep(1)} className="flex-1 border border-gray-300 py-2 text-xs font-bold text-gray-600 hover:border-black transition-colors">← 이전</button>
+                        <button onClick={() => setCardStep(3)} className="flex-1 bg-black text-white py-2 text-xs font-bold hover:bg-neutral-800 transition-colors">다음: 색상 →</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* STEP 3: Style */}
+                  {cardStep === 3 && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">배경 색상</label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {["#1a1a1a","#0f172a","#1c1c1c","#2d1b0e","#1a1a2e","#f7f3ee","#ffffff"].map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => { setCardBgColor(c); setCardTextColor(c === "#f7f3ee" || c === "#ffffff" ? "black" : "white"); }}
+                              className={`w-7 h-7 rounded-full border-2 transition-all ${cardBgColor === c ? "border-[#ff385c] scale-110" : "border-transparent"}`}
+                              style={{ background: c, boxShadow: c === "#ffffff" ? "inset 0 0 0 1px #ddd" : "none" }}
+                            />
+                          ))}
+                          <input
+                            type="color"
+                            value={cardBgColor}
+                            onChange={(e) => setCardBgColor(e.target.value)}
+                            className="w-7 h-7 rounded-full border-2 border-gray-200 cursor-pointer p-0.5"
+                            title="커스텀 색상"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">포인트 컬러</label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {["#ff385c","#ff6b2b","#e2b96f","#6366f1","#8b7355","#e07b5a","#22c55e"].map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => setCardAccentColor(c)}
+                              className={`w-7 h-7 rounded-full border-2 transition-all ${cardAccentColor === c ? "border-black scale-110" : "border-transparent"}`}
+                              style={{ background: c }}
+                            />
+                          ))}
+                          <input
+                            type="color"
+                            value={cardAccentColor}
+                            onChange={(e) => setCardAccentColor(e.target.value)}
+                            className="w-7 h-7 rounded-full border-2 border-gray-200 cursor-pointer p-0.5"
+                            title="커스텀 포인트 컬러"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">텍스트 색상</label>
+                        <div className="flex gap-2">
+                          {(["white","black"] as const).map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => setCardTextColor(c)}
+                              className={`flex-1 py-1.5 text-xs font-bold border-2 transition-all ${cardTextColor === c ? "border-black" : "border-gray-200"}`}
+                              style={{ background: c === "white" ? "#1a1a1a" : "#ffffff", color: c === "white" ? "#fff" : "#000" }}
+                            >
+                              {c === "white" ? "흰색" : "검정"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">배지 표시</label>
+                        <div className="flex gap-3">
+                          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={cardShowSchool} onChange={(e) => setCardShowSchool(e.target.checked)} className="accent-[#ff385c]" />
+                            학교/키워드
+                          </label>
+                          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={cardShowMedium} onChange={(e) => setCardShowMedium(e.target.checked)} className="accent-[#ff385c]" />
+                            매체
+                          </label>
+                        </div>
+                      </div>
+                      {saveCardSuccess && (
+                        <div className="p-2.5 bg-emerald-50 text-emerald-800 text-xs flex items-center gap-1.5">
+                          <Check className="h-3.5 w-3.5" />
+                          카드 저장 완료!
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button onClick={() => setCardStep(2)} className="flex-1 border border-gray-300 py-2 text-xs font-bold text-gray-600 hover:border-black transition-colors">← 이전</button>
+                        <button
+                          onClick={handleSaveCard}
+                          disabled={isSavingCard}
+                          className="flex-1 bg-[#ff385c] text-white py-2 text-xs font-bold hover:bg-[#e00b41] disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                          {isSavingCard ? "저장 중..." : "카드 저장"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live preview */}
+                {showCardPreview && profile && (
+                  <div className="border-t border-gray-100 p-4">
+                    <p className="text-[10px] font-mono text-gray-400 mb-2 uppercase tracking-widest">실시간 미리보기</p>
+                    <div className="w-full overflow-hidden rounded-sm" style={{ height: 200 }}>
+                      <ArtistCardRender
+                        artist={profile}
+                        card={{
+                          archetype: cardArchetype,
+                          image: cardImage || profileAvatar,
+                          headline: cardHeadline,
+                          quote: cardQuote,
+                          bgColor: cardBgColor,
+                          accentColor: cardAccentColor,
+                          textColor: cardTextColor,
+                          showBadges: { school: cardShowSchool, medium: cardShowMedium, year: false },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* ── 프로필 페이지 블록 ──────────────────────────────────────── */}
+              <div className="bg-white border border-gray-200 shadow-sm">
+                <button
+                  onClick={() => setShowBlocksSection((v) => !v)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left"
+                >
+                  <h2 className="font-sans font-extrabold text-base text-black flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-gray-400" />
+                    프로필 페이지 블록
+                  </h2>
+                  {showBlocksSection ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                </button>
+                {showBlocksSection && (
+                  <div className="px-5 pb-5 space-y-3 border-t border-gray-100 pt-4">
+                    <p className="text-xs text-gray-500 font-light">작가 프로필 페이지에 표시할 섹션을 구성합니다.</p>
+                    {profileBlocks.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {profileBlocks.map((block, idx) => {
+                          const typeLabels: Record<ProfileBlockType, string> = { hero: "🖼 Hero 카드", statement: "✍️ 작가 선언문", interview: "💬 인터뷰 Q&A", works: "🎨 작품 갤러리", quote_block: "❝ 인용구 블록", info: "ℹ️ 기본 정보" };
+                          return (
+                            <div key={block.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-sm">
+                              <span className="flex-1 text-xs font-bold text-gray-700">{typeLabels[block.type]}</span>
+                              <div className="flex gap-0.5">
+                                <button onClick={() => moveBlock(block.id, "up")} disabled={idx === 0} className="p-0.5 text-gray-400 hover:text-black disabled:opacity-20"><ChevronUp className="h-3.5 w-3.5" /></button>
+                                <button onClick={() => moveBlock(block.id, "down")} disabled={idx === profileBlocks.length - 1} className="p-0.5 text-gray-400 hover:text-black disabled:opacity-20"><ChevronDown className="h-3.5 w-3.5" /></button>
+                                <button onClick={() => removeBlock(block.id)} className="p-0.5 text-red-400 hover:text-red-600 ml-1"><Trash2 className="h-3.5 w-3.5" /></button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 py-2">블록이 없습니다. 아래에서 추가하세요.</p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {(["hero","statement","interview","works","quote_block","info"] as ProfileBlockType[]).map((t) => {
+                        const labels: Record<ProfileBlockType, string> = { hero: "Hero", statement: "선언문", interview: "인터뷰", works: "갤러리", quote_block: "인용구", info: "정보" };
+                        return (
+                          <button key={t} onClick={() => addBlock(t)} className="text-[10px] font-bold px-2 py-1 bg-gray-100 hover:bg-black hover:text-white text-gray-600 border border-gray-200 transition-colors">
+                            + {labels[t]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {saveBlocksSuccess && (
+                      <div className="p-2 bg-emerald-50 text-emerald-800 text-xs flex items-center gap-1.5">
+                        <Check className="h-3.5 w-3.5" />블록 저장 완료!
+                      </div>
+                    )}
+                    <button
+                      onClick={handleSaveBlocks}
+                      disabled={isSavingBlocks}
+                      className="w-full bg-black text-white py-2 text-xs font-bold hover:bg-neutral-800 disabled:opacity-50 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {isSavingBlocks ? "저장 중..." : "블록 구성 저장"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── 기본 정보 (숨김 가능) ──────────────────────────────────── */}
+              <details className="bg-white border border-gray-200 shadow-sm">
+                <summary className="px-5 py-4 font-sans font-extrabold text-sm text-black cursor-pointer flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-gray-400" />
+                  기본 정보 (검색 데이터)
+                </summary>
+                <div className="px-5 pb-5 border-t border-gray-100 pt-4">
+                  <form onSubmit={handleSaveProfile} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">작가명</label>
+                      <input type="text" required value={profileName} onChange={(e) => setProfileName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-sans" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">이메일</label>
+                      <input type="email" required value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-mono" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">아바타 이미지 URL</label>
+                      <input type="text" required value={profileAvatar} onChange={(e) => setProfileAvatar(e.target.value)} className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-mono" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">키워드 (쉼표 구분)</label>
+                      <input type="text" value={profileKeywordsText} onChange={(e) => setProfileKeywordsText(e.target.value)} placeholder="따뜻한, 자연, 풍경화" className="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-black focus:bg-white focus:border-black font-sans" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">바이오</label>
+                      <textarea rows={3} required value={profileBio} onChange={(e) => setProfileBio(e.target.value)} className="w-full bg-gray-50 border border-gray-200 p-3 text-xs text-black focus:bg-white focus:border-black font-sans leading-relaxed" />
+                    </div>
+                    {saveProfileSuccess && (
+                      <div className="p-2 bg-emerald-50 text-emerald-800 text-xs flex items-center gap-1.5"><Check className="h-3.5 w-3.5" />저장 완료!</div>
+                    )}
+                    <button type="submit" disabled={isSavingProfile} className="w-full bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-600 py-2 font-bold text-xs flex items-center justify-center gap-1.5">
+                      <Save className="h-3.5 w-3.5" />
+                      {isSavingProfile ? "저장 중..." : "기본 정보 저장"}
+                    </button>
+                  </form>
+                </div>
+              </details>
 
               {/* New Artwork Upload form */}
               <div className="bg-white border border-gray-200 p-6 shadow-sm">

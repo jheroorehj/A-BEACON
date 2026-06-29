@@ -192,8 +192,8 @@ export default function App() {
               <span>재시도</span>
             </button>
           </div>
-        ) : mode === "artist" ? (
-          /* 작가 모드: 작가 지원실 */
+        ) : mode === "artist" && isArtistAccount ? (
+          /* 작가 모드: 작가 계정 전용 */
           <ArtistManager
             artworks={artworks}
             artists={artists}

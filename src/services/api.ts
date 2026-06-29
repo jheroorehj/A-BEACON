@@ -5,7 +5,7 @@
  * 실제 백엔드 도입 시 BASE_URL과 getAuthHeaders만 수정하면 된다.
  */
 
-import type { Artwork, Artist, UserInquiry, AISearchResult, AdminStats, ChatMessage, TradeStatus, EstimateData } from "../types";
+import type { Artwork, Artist, UserInquiry, AISearchResult, AdminStats, ChatMessage, TradeStatus, EstimateData, PaymentRecord } from "../types";
 
 // ─── 설정 ─────────────────────────────────────────────────────────────────────
 
@@ -182,6 +182,42 @@ export const chatApi = {
   },
 };
 
+// ─── Payment (Escrow) ────────────────────────────────────────────────────────
+
+export interface CreatePaymentPayload {
+  inquiryId: string;
+  estimateNo: string;
+  artworkTitle: string;
+  artistName: string;
+  buyerEmail: string;
+  totalPrice: number;
+  depositRate: number;
+}
+
+export const paymentApi = {
+  getByInquiry(inquiryId: string): Promise<PaymentRecord> {
+    return request<PaymentRecord>(`/api/payments/inquiry/${inquiryId}`);
+  },
+  create(payload: CreatePaymentPayload): Promise<PaymentRecord> {
+    return request<PaymentRecord>("/api/payments", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  payFinal(paymentId: string): Promise<PaymentRecord> {
+    return request<PaymentRecord>(`/api/payments/${paymentId}/final`, { method: "PUT" });
+  },
+  ship(paymentId: string, trackingNumber: string, carrier: string): Promise<PaymentRecord> {
+    return request<PaymentRecord>(`/api/payments/${paymentId}/ship`, {
+      method: "PUT",
+      body: JSON.stringify({ trackingNumber, carrier }),
+    });
+  },
+  confirmDelivery(paymentId: string): Promise<{ payment: PaymentRecord; inquiry: UserInquiry }> {
+    return request(`/api/payments/${paymentId}/confirm`, { method: "PUT" });
+  },
+};
+
 // ─── AI Search ───────────────────────────────────────────────────────────────
 
 export interface SearchResponse extends AISearchResult {
@@ -231,6 +267,27 @@ export const roomMatchApi = {
     return request<RoomMatchResponse>("/api/room-match", {
       method: "POST",
       body: JSON.stringify({ userText, roomImageBase64 }),
+    });
+  },
+};
+
+// ─── Gemini Room Preview ─────────────────────────────────────────────────────
+
+export const geminiApi = {
+  async roomPreview(
+    roomImageFile: File,
+    artworkImageUrl: string,
+    artworkTitle: string,
+  ): Promise<{ previewImageBase64: string; mimeType: string }> {
+    const roomImageBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(roomImageFile);
+    });
+    return request<{ previewImageBase64: string; mimeType: string }>("/api/gemini/room-preview", {
+      method: "POST",
+      body: JSON.stringify({ roomImageBase64, artworkImageUrl, artworkTitle }),
     });
   },
 };

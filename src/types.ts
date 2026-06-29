@@ -21,6 +21,28 @@ export interface Artwork {
   featured?: boolean;
 }
 
+export type CardArchetype = "cover" | "editorial" | "manifesto" | "portrait" | "quote";
+
+export interface ArtistCard {
+  archetype: CardArchetype;
+  image: string;
+  headline: string;
+  quote: string;
+  bgColor: string;
+  accentColor: string;
+  textColor: "white" | "black";
+  showBadges: { school: boolean; medium: boolean; year: boolean };
+}
+
+export type ProfileBlockType = "hero" | "statement" | "interview" | "works" | "quote_block" | "info";
+
+export interface ProfileBlock {
+  id: string;
+  type: ProfileBlockType;
+  order: number;
+  config: Record<string, unknown>;
+}
+
 export interface Artist {
   id: string;
   name: string;
@@ -29,6 +51,8 @@ export interface Artist {
   keywords: string[];
   interviewQuestions: { question: string; answer: string }[];
   email: string;
+  card?: ArtistCard;
+  profileBlocks?: ProfileBlock[];
 }
 
 export type TradeStatus = "문의중" | "거래중" | "거래완료" | "취소";
@@ -97,6 +121,36 @@ export interface ChatMessage {
   /** "system": 거래 상태 변경 등 자동 생성 이벤트 메시지 */
   messageType?: "text" | "system" | "estimate";
   estimate?: EstimateData;
+}
+
+// ─── 에스크로 결제 ────────────────────────────────────────────────────────────
+
+export type EscrowStatus =
+  | "deposit_held"   // 계약금 에스크로 보관 중, 작가 발송 대기
+  | "shipped"        // 작가 발송 완료, 구매자 수령 확인 + 잔금 결제 대기
+  | "released"       // 전액 지급 완료 (거래완료)
+  | "refunded";      // 환불 완료
+
+export interface PaymentRecord {
+  id: string;
+  inquiryId: string;
+  estimateNo: string;
+  artworkTitle: string;
+  artistName: string;
+  buyerEmail: string;
+  totalPrice: number;
+  depositRate: number;    // 계약금 비율 (0 = 일시불)
+  depositAmount: number;  // 계약금 (0 = 일시불)
+  finalAmount: number;    // 잔금 (일시불이면 totalPrice)
+  escrowStatus: EscrowStatus;
+  createdAt: string;
+  depositPaidAt?: string;
+  finalPaidAt?: string;
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
+  deliveredConfirmedAt?: string;
+  releasedAt?: string;
 }
 
 export interface AISearchResult {

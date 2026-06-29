@@ -10,7 +10,10 @@ import {
   Camera, ChevronDown, ChevronUp, ImagePlus, Heart
 } from "lucide-react";
 import { Artwork, Artist, AISearchResult, ArtCategory } from "../types";
-import { searchApi, inquiriesApi, roomMatchApi, ApiError } from "../services/api";
+import { searchApi, inquiriesApi, roomMatchApi, geminiApi, ApiError } from "../services/api";
+import { mockRoomPreview } from "../services/mockRoomPreview";
+import { getCardConfig } from "./ArtistCardRender";
+import ArtistProfile from "./ArtistProfile";
 
 interface BuyerExploreProps {
   artworks: Artwork[];
@@ -194,7 +197,31 @@ export default function BuyerExplore({
   const [createdInquiryId, setCreatedInquiryId] = useState<string | null>(null);
 
   // Active Story/Interview details
-  const [showFullInterview, setShowFullInterview] = useState<Artist | null>(null);
+  const [profileArtist, setProfileArtist] = useState<Artist | null>(null);
+
+  // ─── Gemini Room Preview ────────────────────────────────────────────────────
+  const [roomPreviewLoading, setRoomPreviewLoading] = useState<Record<string, boolean>>({});
+  const [roomPreviewImages, setRoomPreviewImages] = useState<Record<string, { base64: string; mimeType: string }>>({});
+  const [showRoomPreview, setShowRoomPreview] = useState<{ artwork: Artwork; base64: string; mimeType: string } | null>(null);
+
+  const handleRoomPreview = async (art: Artwork) => {
+    if (!roomMatchFile) return;
+    setRoomPreviewLoading((p) => ({ ...p, [art.id]: true }));
+    try {
+      const isMock = import.meta.env.VITE_MOCK_ROOM_PREVIEW === "true";
+      const result = isMock
+        ? await mockRoomPreview(3000)
+        : await geminiApi.roomPreview(roomMatchFile, art.image, art.title);
+      const entry = { base64: result.previewImageBase64, mimeType: result.mimeType };
+      setRoomPreviewImages((p) => ({ ...p, [art.id]: entry }));
+      setShowRoomPreview({ artwork: art, ...entry });
+    } catch (e) {
+      console.error("[Room Preview]", e);
+      alert("이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setRoomPreviewLoading((p) => ({ ...p, [art.id]: false }));
+    }
+  };
 
   // Sync initialSelectedArtwork from gateway clicks and clear it once we capture it
   useEffect(() => {
@@ -357,8 +384,8 @@ export default function BuyerExplore({
                   : "text-[#6a6a6a] hover:text-[#222222]"
               }`}
             >
-              <span className="sm:hidden">스토리</span>
-              <span className="hidden sm:inline">이달의 작가 스토리</span>
+              <span className="sm:hidden">작가</span>
+              <span className="hidden sm:inline">작가 갤러리</span>
             </button>
           </div>
         </div>
@@ -599,9 +626,9 @@ export default function BuyerExplore({
             </div>
           </section>
 
-          {/* ─── 방 사진 AI 매칭 패널 (Iamhero) ─────────────────────────── */}
+          {/* ─── 방 사진 기반 AI 큐레이션 + 공간 시뮬레이션 패널 ──────────── */}
           <section className="bg-white border-b border-[#ebebeb]">
-            <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
               {/* 토글 버튼 */}
               <button
                 type="button"
@@ -610,9 +637,9 @@ export default function BuyerExplore({
               >
                 <div className="flex items-center gap-2.5">
                   <Camera className="h-4 w-4 text-[#ff385c]" />
-                  <span className="text-sm font-bold text-[#222222]">방 사진으로 AI 작품 매칭</span>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-violet-100 text-violet-600 rounded-full uppercase tracking-widest">
-                    Powered by Iamhero AI
+                  <span className="text-sm font-bold text-[#222222]">내 공간에 맞는 작품 찾기</span>
+                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 bg-violet-100 text-violet-600 rounded-full uppercase tracking-widest hidden sm:inline">
+                    AI Curation + Space Simulation
                   </span>
                 </div>
                 {showRoomMatch
@@ -624,9 +651,27 @@ export default function BuyerExplore({
               {/* 패널 본문 */}
               {showRoomMatch && (
                 <form onSubmit={handleRoomMatch} className="mt-4 p-5 border border-[#ebebeb] rounded-xl bg-[#fafafa] space-y-4">
-                  <p className="text-xs text-[#6a6a6a]">
-                    방 사진과 현재 기분/원하는 분위기를 입력하면, 텍스트·이미지·색상을 동시에 분석해 가장 잘 어울리는 작품 3점을 추천합니다.
-                  </p>
+                  {/* 기능 설명 2단 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex gap-3 p-3 bg-white rounded-lg border border-[#ebebeb]">
+                      <div className="shrink-0 w-7 h-7 rounded-full bg-[#ff385c]/10 flex items-center justify-center">
+                        <Sparkles className="h-3.5 w-3.5 text-[#ff385c]" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#222]">AI 작품 큐레이션</p>
+                        <p className="text-[11px] text-[#888] leading-relaxed mt-0.5">방 사진과 현재 기분을 함께 분석해 공간 색감·분위기에 맞는 작품을 추천합니다.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 p-3 bg-white rounded-lg border border-[#ebebeb]">
+                      <div className="shrink-0 w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center">
+                        <ImagePlus className="h-3.5 w-3.5 text-violet-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#222]">공간 시뮬레이션</p>
+                        <p className="text-[11px] text-[#888] leading-relaxed mt-0.5">추천된 작품이 실제 내 방 벽에 걸렸을 때의 모습을 Gemini AI가 이미지로 생성합니다.</p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* 기분 입력 */}
                   <div>
@@ -909,6 +954,39 @@ export default function BuyerExplore({
                           <span className="text-[#6a6a6a] font-normal italic truncate max-w-[150px]">{art.medium}</span>
                           <span className="font-sans font-extrabold text-[#222222] text-sm">{art.priceRange}</span>
                         </div>
+
+                        {/* Gemini 방 미리보기 버튼 — 방 사진 매칭 후에만 표시 */}
+                        {isAiBestMatched && roomMatchFile && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (roomPreviewImages[art.id]) {
+                                setShowRoomPreview({ artwork: art, ...roomPreviewImages[art.id] });
+                              } else {
+                                handleRoomPreview(art);
+                              }
+                            }}
+                            disabled={roomPreviewLoading[art.id]}
+                            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 border border-violet-200 text-violet-600 hover:bg-violet-50 hover:border-violet-400 rounded-xl text-xs font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer bg-white"
+                          >
+                            {roomPreviewLoading[art.id] ? (
+                              <>
+                                <div className="h-3.5 w-3.5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+                                <span>이미지 생성 중...</span>
+                              </>
+                            ) : roomPreviewImages[art.id] ? (
+                              <>
+                                <ImagePlus className="h-3.5 w-3.5" />
+                                <span>내 방에서 다시 보기</span>
+                              </>
+                            ) : (
+                              <>
+                                <ImagePlus className="h-3.5 w-3.5" />
+                                <span>내 방에 걸어보기 ✦ AI 생성</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -934,80 +1012,215 @@ export default function BuyerExplore({
           </div>
         </>
       ) : (
-        /* ── 이달의 작가 스토리 탭 ── */
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="artist-spotlight-section">
-          <div className="border-b border-gray-200 pb-4 mb-8">
-            <h2 className="font-sans font-black text-2xl text-black">이달의 작가 &amp; 인터뷰</h2>
-            <p className="text-sm text-gray-500">작업 공간의 철학과 동경을 고스란히 나누는 창작자 탐험</p>
+        /* ── 작가 갤러리 탭 ── */
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="artist-gallery-section">
+          {profileArtist && (
+            <ArtistProfile
+              artist={profileArtist}
+              artworks={artworks}
+              onClose={() => setProfileArtist(null)}
+              onContact={() => {
+                setProfileArtist(null);
+                if (onOpenChat) onOpenChat();
+              }}
+            />
+          )}
+
+          {/* 헤더 */}
+          <div className="flex items-end justify-between border-b border-[#ebebeb] pb-5 mb-8">
+            <div>
+              <p className="text-[10px] font-mono tracking-[0.35em] text-[#ff385c] uppercase mb-1">Artist Gallery</p>
+              <h2 className="text-2xl font-black text-[#222]">발견할 작가들</h2>
+              <p className="text-sm text-[#888] font-light mt-0.5">아직 세상이 모르는, 그러나 분명히 좋은</p>
+            </div>
+            <span className="text-xs text-[#bbb] font-mono hidden sm:block">{artists.length} artists</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {artists.map((artist) => {
-              const worksCount = artworks.filter((a) => a.artistId === artist.id).length;
-              return (
-                <div 
-                  key={artist.id}
-                  className="bg-white border border-gray-200 p-6 flex flex-col justify-between hover:border-black/30 transition-all duration-300"
-                >
-                  <div>
-                    {/* Head row */}
-                    <div className="flex items-center space-x-4 mb-4">
+          {artists.length > 0 ? (
+            <div className="space-y-10">
+
+              {/* ── Feature: 첫 번째 작가 전면 배치 ── */}
+              {artists[0] && (() => {
+                const a = artists[0];
+                const card = getCardConfig(a);
+                const works = artworks.filter((w) => w.artistId === a.id);
+                const heroImg = works[0]?.image || card.image;
+                const sn = a.name.split(" (")[0];
+                const hook = card.headline || a.bio.slice(0, 80);
+                return (
+                  <div
+                    className="group cursor-pointer"
+                    onClick={() => setProfileArtist(a)}
+                  >
+                    {/* 대표작 이미지 */}
+                    <div className="relative overflow-hidden bg-[#111] aspect-[21/9]">
                       <img
-                        src={artist.avatar}
-                        alt={artist.name}
+                        src={heroImg}
+                        alt={sn}
                         referrerPolicy="no-referrer"
-                        className="h-14 w-14 rounded-full object-cover border border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          const parent = e.currentTarget.parentElement;
-                          if (parent && !parent.querySelector(".avatar-fallback")) {
-                            const fb = document.createElement("div");
-                            fb.className = "avatar-fallback h-14 w-14 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 text-lg font-bold";
-                            fb.textContent = artist.name.charAt(0);
-                            parent.insertBefore(fb, e.currentTarget);
-                          }
-                        }}
+                        className="w-full h-full object-cover opacity-75 transition-all duration-700 group-hover:scale-103 group-hover:opacity-85"
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
-                      <div>
-                        <h3 className="font-sans font-bold text-base text-black flex items-center space-x-1.5">
-                          <span>{artist.name}</span>
-                          <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded-sm">작가</span>
-                        </h3>
-                        <p className="text-xs text-gray-400 font-sans">{artist.email}</p>
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-transparent" />
+                      <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-12">
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {a.keywords.slice(0, 3).map((k) => (
+                            <span
+                              key={k}
+                              className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-sm"
+                              style={{ background: card.accentColor + "33", color: card.accentColor, border: `1px solid ${card.accentColor}55` }}
+                            >
+                              {k}
+                            </span>
+                          ))}
+                        </div>
+                        <h3 className="text-3xl sm:text-4xl font-black text-white leading-tight mb-2">{sn}</h3>
+                        <p className="text-sm sm:text-base text-white/70 font-light leading-relaxed max-w-xl">{hook}</p>
+                        {card.quote && (
+                          <p className="mt-3 text-sm text-white/45 italic leading-relaxed max-w-lg">"{card.quote}"</p>
+                        )}
+                        <div className="mt-5 inline-flex items-center gap-1.5 text-white/60 group-hover:text-[#ff385c] transition-colors duration-300">
+                          <span className="text-[10px] font-mono tracking-[0.3em] uppercase font-bold">작가 프로필 전체 보기</span>
+                          <ChevronRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                        </div>
                       </div>
                     </div>
-
-                    <p className="text-xs text-gray-500 font-sans leading-relaxed line-clamp-3 mb-4 bg-gray-50 p-3">
-                      {artist.bio}
-                    </p>
-
-                    {/* Keywords chips */}
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {artist.keywords.map((word) => (
-                        <span key={word} className="text-[10px] font-mono text-gray-500 bg-gray-100 px-2 py-0.5">
-                          #{word}
-                        </span>
-                      ))}
-                    </div>
+                    {/* 작품 썸네일 스트립 */}
+                    {works.length > 1 && (
+                      <div className="flex gap-1 mt-1">
+                        {works.slice(1, 5).map((w) => (
+                          <div key={w.id} className="flex-1 aspect-[4/3] overflow-hidden bg-[#f0ece4]">
+                            <img
+                              src={w.image}
+                              alt={w.title}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                );
+              })()}
 
-                  <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-xs text-gray-400 font-mono uppercase font-bold">소장작품: {worksCount}점</span>
-                    <button
-                      onClick={() => setShowFullInterview(artist)}
-                      className="text-xs font-bold font-sans text-black hover:text-neutral-500 flex items-center space-x-1 p-1 bg-neutral-100 hover:bg-neutral-200"
+              {/* ── Grid: 나머지 작가 3열 ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10">
+                {artists.slice(1).map((a) => {
+                  const card = getCardConfig(a);
+                  const works = artworks.filter((w) => w.artistId === a.id);
+                  const heroImg = works[0]?.image || card.image;
+                  const sn = a.name.split(" (")[0];
+                  const hook = card.headline || a.bio.slice(0, 60);
+                  return (
+                    <div
+                      key={a.id}
+                      className="group cursor-pointer"
+                      onClick={() => setProfileArtist(a)}
                     >
-                      <span>인터뷰 &amp; 대표작 보기</span>
-                      <ChevronRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                      {/* 대표작 */}
+                      <div className="relative overflow-hidden bg-[#111] aspect-[4/5]">
+                        <img
+                          src={heroImg}
+                          alt={sn}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover opacity-80 transition-all duration-700 group-hover:scale-103 group-hover:opacity-90"
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        {/* 키워드 */}
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+                          {a.keywords.slice(0, 2).map((k) => (
+                            <span
+                              key={k}
+                              className="text-[9px] font-mono font-bold px-1.5 py-0.5"
+                              style={{ background: card.accentColor + "cc", color: "#fff" }}
+                            >
+                              {k}
+                            </span>
+                          ))}
+                        </div>
+                        {/* 이름 오버레이 */}
+                        <div className="absolute bottom-3 left-4">
+                          <h3 className="text-xl font-black text-white leading-tight drop-shadow-sm">{sn}</h3>
+                        </div>
+                      </div>
+
+                      {/* 카피 */}
+                      <div className="pt-3 pb-1">
+                        <p className="text-sm text-[#333] font-semibold leading-snug">{hook}</p>
+                        {card.quote && (
+                          <p className="mt-1.5 text-xs text-[#999] italic leading-relaxed line-clamp-2">
+                            "{card.quote}"
+                          </p>
+                        )}
+                        <div className="mt-2.5 flex items-center gap-1 text-[#bbb] group-hover:text-[#ff385c] transition-colors duration-200">
+                          <span className="text-[10px] font-mono tracking-[0.25em] uppercase font-bold">프로필 & 작품 보기</span>
+                          <ChevronRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          ) : (
+            <div className="py-24 text-center">
+              <p className="text-[#bbb] text-sm font-mono">등록된 작가가 없습니다.</p>
+            </div>
+          )}
         </section>
       )}
 
+
+      {/* Gemini 방 미리보기 모달 */}
+      {showRoomPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowRoomPreview(null)}
+        >
+          <div
+            className="bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-[#ebebeb] animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#ebebeb]">
+              <div>
+                <span className="text-[9px] font-mono tracking-[0.35em] text-violet-400 uppercase">Gemini AI · Room Preview</span>
+                <p className="text-sm font-bold text-[#222] mt-0.5">{showRoomPreview.artwork.title}</p>
+              </div>
+              <button
+                onClick={() => setShowRoomPreview(null)}
+                className="p-2 rounded-full hover:bg-[#f7f7f7] transition-colors cursor-pointer border-none bg-transparent"
+              >
+                <X className="h-4 w-4 text-[#444]" />
+              </button>
+            </div>
+
+            {/* 생성된 이미지 */}
+            <div className="relative bg-[#f7f7f7]">
+              <img
+                src={`data:${showRoomPreview.mimeType};base64,${showRoomPreview.base64}`}
+                alt="방 미리보기"
+                className="w-full object-contain max-h-[60vh]"
+              />
+            </div>
+
+            {/* 하단 */}
+            <div className="px-5 py-4 flex items-center justify-between">
+              <p className="text-xs text-[#aaa] font-mono">AI가 생성한 가상의 배치 이미지입니다</p>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleOpenArtwork(showRoomPreview.artwork); setShowRoomPreview(null); }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#ff385c] text-white text-xs font-bold rounded-full hover:bg-[#e00b41] transition-colors cursor-pointer border-none"
+              >
+                작품 자세히 보기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 작품 상세 모달 */}
       {selectedArtwork && (
@@ -1289,105 +1502,6 @@ export default function BuyerExplore({
               </button>
             </div>
 
-          </div>
-        </div>
-      )}
-
-
-      {/* Sub Drawer: SHOW DETAILED WRITTEN STORIES / INTERVIEW MODAL */}
-      {showFullInterview && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white max-w-2xl w-full p-6 sm:p-8 border border-black shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button 
-              onClick={() => setShowFullInterview(null)}
-              className="absolute top-4 right-4 bg-white hover:bg-black hover:text-white p-2 border border-gray-200"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="text-center mb-6">
-              <span className="text-[10px] bg-black text-white font-mono font-bold tracking-widest px-2 py-0.5">ESTEEMED INTERVIEW</span>
-              <h2 className="font-sans font-black text-2xl text-black mt-2">
-                작가 {showFullInterview.name} 이야기
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">예술을 빚어내는 무형의 고뇌와 흔적들을 나눕니다.</p>
-            </div>
-
-            <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2" id="full-interview-scroll">
-              <div className="flex items-center space-x-4 bg-gray-50 p-4 border border-gray-100">
-                <img
-                  src={showFullInterview.avatar}
-                  alt={showFullInterview.name}
-                  referrerPolicy="no-referrer"
-                  className="h-12 w-12 rounded-full object-cover flex-shrink-0"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && !parent.querySelector(".avatar-fallback")) {
-                      const fb = document.createElement("div");
-                      fb.className = "avatar-fallback h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-lg font-bold flex-shrink-0";
-                      fb.textContent = showFullInterview.name.charAt(0);
-                      parent.insertBefore(fb, e.currentTarget);
-                    }
-                  }}
-                />
-                <div>
-                  <p className="text-xs text-gray-400">작가 소개글</p>
-                  <p className="text-xs text-gray-600 font-light font-sans leading-relaxed">{showFullInterview.bio}</p>
-                </div>
-              </div>
-
-              {showFullInterview.interviewQuestions.map((qa, i) => (
-                <div key={i} className="space-y-2 border-b border-gray-100 pb-4 last:border-b-0">
-                  <h4 className="font-sans font-bold text-sm text-black flex items-start space-x-2">
-                    <span className="text-amber-600 font-mono">Q{i+1}.</span>
-                    <span>{qa.question}</span>
-                  </h4>
-                  <p className="text-xs text-gray-500 font-light leading-relaxed pl-5 font-sans">
-                    &ldquo;{qa.answer}&rdquo;
-                  </p>
-                </div>
-              ))}
-
-              {/* Representative artworks list of this specific artist */}
-              <div>
-                <h4 className="text-xs font-bold font-mono text-gray-400 uppercase tracking-wider mb-3">소장 가능 대표 컬렉션</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  {artworks
-                    .filter((art) => art.artistId === showFullInterview.id)
-                    .map((art) => (
-                      <div 
-                        key={art.id}
-                        onClick={() => {
-                          setSelectedArtwork(art);
-                          setShowFullInterview(null); // cross
-                        }}
-                        className="cursor-pointer border border-gray-100 p-1 bg-gray-50/50 hover:border-black/30 transition-all text-center"
-                      >
-                        <img
-                          src={art.image}
-                          alt={art.title}
-                          referrerPolicy="no-referrer"
-                          className="w-full aspect-square object-cover mb-1 bg-gray-100"
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        />
-                        <p className="text-[10px] font-sans font-bold text-black truncate">{art.title}</p>
-                        <p className="text-[9px] font-mono text-gray-400">{art.priceRange}</p>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-            </div>
-
-            <div className="mt-8 pt-4 border-t border-gray-200 flex justify-end">
-              <button 
-                onClick={() => setShowFullInterview(null)}
-                className="px-6 py-2 border border-black font-sans text-xs font-bold hover:bg-black hover:text-white transition-all rounded-none"
-              >
-                닫기
-              </button>
-            </div>
           </div>
         </div>
       )}

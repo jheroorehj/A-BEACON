@@ -1,4 +1,5 @@
-import { ArrowRight, Palette, MessageCircle, Layers, LogOut } from "lucide-react";
+import { useRef, useEffect } from "react";
+import { ArrowRight, Palette, MessageCircle, Layers, LogOut, Camera, ShieldCheck, Heart } from "lucide-react";
 import { Logo } from "./Logo";
 import type { UserSession } from "../types";
 
@@ -10,27 +11,18 @@ interface HomePageProps {
 
 const PREVIEW_IMAGES = [
   {
-    src: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80",
-    alt: "파스텔 추상 회화",
+    src: "/photos/KakaoTalk_20260629_104428985_06.jpg",
+    alt: "물고기 금속 오브제",
   },
   {
-    src: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=500&auto=format&fit=crop&q=80",
-    alt: "도시 야경 사진",
+    src: "/photos/KakaoTalk_20260629_104428985_08.jpg",
+    alt: "철 와이어 동물 조각",
   },
   {
-    src: "https://images.unsplash.com/photo-1576016770956-debb63d900ad?w=500&auto=format&fit=crop&q=80",
-    alt: "미니멀 도예 작품",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=500&auto=format&fit=crop&q=80",
-    alt: "기하학 금속 조각",
+    src: "/photos/KakaoTalk_20260629_104428985_04.jpg",
+    alt: "물탑과 구름 풍경 회화",
   },
 ];
-
-/** A-BEACON 텍스트에서 O에만 포인트 컬러를 적용하는 헬퍼 */
-function AB() {
-  return <>A-BEAC<span className="text-[#ff385c]">O</span>N</>;
-}
 
 /** 섹션 공통 라벨 */
 function SectionLabel({ children }: { children: string }) {
@@ -42,11 +34,64 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export default function HomePage({ onStart, session, onLogout }: HomePageProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const sections: HTMLElement[] = Array.from(el.querySelectorAll<HTMLElement>("[data-snap]"));
+    const animating = { v: false };
+    const cur = { i: 0 };
+
+    const go = (i: number) => {
+      if (i < 0 || i >= sections.length || animating.v) return;
+      animating.v = true;
+      cur.i = i;
+      sections[i].scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => { animating.v = false; }, 900);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      const atEnd = e.deltaY > 0 && cur.i === sections.length - 1;
+      if (atEnd) return;
+      e.preventDefault();
+      if (animating.v) return;
+      go(cur.i + (e.deltaY > 0 ? 1 : -1));
+    };
+
+    let ty = 0;
+    const onTouchStart = (e: TouchEvent) => { ty = e.touches[0].clientY; };
+    const onTouchEnd = (e: TouchEvent) => {
+      const d = ty - e.changedTouches[0].clientY;
+      if (Math.abs(d) < 50 || animating.v) return;
+      go(cur.i + (d > 0 ? 1 : -1));
+    };
+
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) cur.i = sections.indexOf(e.target as HTMLElement);
+      }),
+      { root: el, threshold: 0.5 }
+    );
+    sections.forEach((s) => obs.observe(s as Element));
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+      obs.disconnect();
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white text-[#222222]">
+    <div ref={containerRef} className="h-screen overflow-y-scroll bg-white text-[#222222]">
 
       {/* ── 상단 헤더 ── */}
-      <header className="border-b border-[#ebebeb] px-8 sm:px-16 py-5">
+      <header className="sticky top-0 z-20 bg-white border-b border-[#ebebeb] px-8 sm:px-16 py-5">
         <div className="flex items-center justify-between">
         <Logo size="md" />
         {session ? (
@@ -77,7 +122,8 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
       </header>
 
       {/* ── 1. Hero ── */}
-      <section className="max-w-6xl mx-auto px-6 sm:px-10 py-24 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+      <section data-snap className="min-h-screen flex items-center scroll-mt-[68px]">
+        <div className="max-w-6xl w-full mx-auto px-6 sm:px-10 py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
         {/* 텍스트 */}
         <div className="space-y-8">
           <div className="space-y-5">
@@ -87,7 +133,7 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
               <span className="text-[#ff385c]">예술이 되다.</span>
             </h1>
             <p className="text-lg sm:text-xl text-[#6a6a6a] font-light leading-relaxed">
-              <AB />은 AI 큐레이션을 통해 원하는 작품을 추천하고,<br />
+              A-BEACON은 AI 큐레이션을 통해 원하는 작품을 추천하고,<br />
               신진 예술가가 더 많은 사람들과 연결될 수 있도록 돕습니다.
             </p>
           </div>
@@ -127,7 +173,7 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
 
         {/* 이미지 그리드 */}
         <div className="grid grid-cols-2 gap-3">
-          {PREVIEW_IMAGES.map((img, i) => (
+          {PREVIEW_IMAGES.slice(0, 3).map((img, i) => (
             <div
               key={i}
               className={`overflow-hidden rounded-[14px] bg-[#f7f7f7] ${i === 0 ? "col-span-2 aspect-[2/1]" : "aspect-square"}`}
@@ -136,19 +182,20 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
                 src={img.src}
                 alt={img.alt}
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                className={`w-full h-full object-cover hover:scale-105 transition-transform duration-700 ${i === 0 ? "object-top" : ""}`}
               />
             </div>
           ))}
         </div>
+        </div>
       </section>
 
       {/* ── 2. Story ── */}
-      <section id="story" className="bg-[#111111] text-white py-24 px-6 sm:px-10">
+      <section id="story" data-snap className="min-h-screen flex flex-col justify-center bg-[#111111] text-white py-16 px-6 sm:px-10 scroll-mt-[68px]">
         <div className="max-w-6xl mx-auto">
           <SectionLabel>Our Story</SectionLabel>
           <h2 className="text-4xl sm:text-5xl font-black leading-tight tracking-tight mb-8">
-            A-BEAC<span className="text-[#ff385c]">O</span>N은 작가들의 등대입니다.
+            A-BEACON은 작가들의 등대입니다.
           </h2>
           <p className="text-lg text-[#bbbbbb] font-light leading-relaxed max-w-xl mb-14">
             BEACON은 항해자를 안전한 곳으로 이끄는 등대를 뜻합니다.
@@ -185,51 +232,72 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
 
           <div className="border-t border-white/20 pt-10 space-y-3">
             <p className="text-2xl sm:text-3xl font-medium text-white leading-relaxed tracking-tight">
-              좋은 작품은 더 많은 사람을 만나야 합니다.
+              좋은 작가는, 세상이 알기 전에 먼저 발견되어야 합니다.
             </p>
             <p className="text-2xl sm:text-3xl font-medium text-white/70 leading-relaxed tracking-tight">
               그리고 좋은 작품을 찾는 일은 더 쉬워져야 합니다.
+            </p>
+            <p className="text-2xl sm:text-3xl font-medium text-white/40 leading-relaxed tracking-tight">
+              갤러리에 들어가기 전에, 가격이 오르기 전에.
             </p>
           </div>
         </div>
       </section>
 
       {/* ── 3. How It Works ── */}
-      <section className="py-24 px-6 sm:px-10 bg-[#fafafa]">
+      <section data-snap className="min-h-screen flex flex-col justify-center py-16 px-6 sm:px-10 bg-[#fafafa] scroll-mt-[68px]">
         <div className="max-w-6xl mx-auto">
           <SectionLabel>How It Works</SectionLabel>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-14">
-            <AB />이 하는 일
+          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-8">
+            A-BEACON이 하는 일
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               {
-                icon: <Palette className="h-7 w-7 text-[#ff385c]" />,
+                icon: <Palette className="h-6 w-6 text-[#ff385c]" />,
                 num: "01",
                 title: "발견",
-                desc: "분위기, 색감, 공간 — 느낌을 입력하면 어울리는 작품을 AI가 큐레이션합니다. 장르 필터가 아닌, 감성으로 탐색하세요.",
+                desc: "분위기, 색감, 공간 — 느낌을 자연어로 입력하면 AI가 어울리는 작품을 큐레이션합니다. 장르 필터가 아닌, 감성으로 탐색하세요.",
               },
               {
-                icon: <MessageCircle className="h-7 w-7 text-[#ff385c]" />,
+                icon: <MessageCircle className="h-6 w-6 text-[#ff385c]" />,
                 num: "02",
                 title: "연결",
-                desc: "마음에 드는 작품을 찾았다면 작가에게 직접 소장 문의를 보낼 수 있습니다. 중간 유통 없이, 작가와 감상자가 직접.",
+                desc: "마음에 드는 작품을 찾았다면 작가에게 직접 소장 문의를 보낼 수 있습니다. 중간 유통 없이, 작가와 감상자가 채팅으로 직접 소통합니다.",
               },
               {
-                icon: <Layers className="h-7 w-7 text-[#ff385c]" />,
+                icon: <Layers className="h-6 w-6 text-[#ff385c]" />,
                 num: "03",
                 title: "성장",
-                desc: "작가는 포트폴리오를 등록하고 작품을 세상에 알립니다. 전시 공간 없이도, 자신의 작품으로 감상자를 만날 수 있습니다.",
+                desc: "신진 작가는 포트폴리오를 무료로 등록하고 작품을 세상에 알립니다. 갤러리 없이도 나만의 온라인 전시 공간을 가질 수 있습니다.",
+              },
+              {
+                icon: <Camera className="h-6 w-6 text-[#ff385c]" />,
+                num: "04",
+                title: "공간 매칭",
+                desc: "내 방 사진을 업로드하면 AI가 공간의 색감·분위기를 분석해 실제로 어울리는 작품을 추천합니다. 걸어두기 전에 미리 확인하세요.",
+              },
+              {
+                icon: <ShieldCheck className="h-6 w-6 text-[#ff385c]" />,
+                num: "05",
+                title: "계약 보호",
+                desc: "문체부 고시 미술거래 표준 계약서 양식과 견적서를 플랫폼 안에서 바로 발행합니다. 작가와 구매자 모두 안심하고 거래할 수 있습니다.",
+              },
+              {
+                icon: <Heart className="h-6 w-6 text-[#ff385c]" />,
+                num: "06",
+                title: "컬렉션",
+                desc: "마음에 드는 작품을 위시리스트에 담아두고 나만의 컬렉션을 만들어보세요. 작가의 인터뷰와 작업 철학도 함께 열람할 수 있습니다.",
               },
             ].map((item) => (
-              <div key={item.num} className="bg-white border border-[#ebebeb] rounded-2xl p-8 hover:border-[#ff385c]/30 hover:shadow-sm transition-all">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="p-3 bg-[#ff385c]/5 rounded-xl">{item.icon}</div>
+              <div key={item.num} className="bg-white border border-[#ebebeb] rounded-2xl p-6 hover:border-[#ff385c]/30 hover:shadow-sm transition-all">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-2.5 bg-[#ff385c]/5 rounded-xl">{item.icon}</div>
                   <span className="text-xs font-mono font-bold text-[#dddddd]">{item.num}</span>
                 </div>
-                <h3 className="text-xl font-black text-[#222222] mb-3">{item.title}</h3>
-                <p className="text-base text-[#6a6a6a] font-light leading-relaxed">{item.desc}</p>
+                <h3 className="text-lg font-black text-[#222222] mb-2">{item.title}</h3>
+                <p className="text-sm text-[#6a6a6a] font-light leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -237,8 +305,8 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
       </section>
 
       {/* ── 4. For Artists / For Collectors ── */}
-      <section className="py-24 px-6 sm:px-10">
-        <div className="max-w-6xl mx-auto">
+      <section data-snap className="min-h-screen flex flex-col px-6 sm:px-10 scroll-mt-[68px]">
+        <div className="flex-1 flex flex-col justify-center max-w-6xl w-full mx-auto py-12">
           <SectionLabel>Who It's For</SectionLabel>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-14">
             작가와 컬렉터, 모두를 위해
@@ -316,33 +384,12 @@ export default function HomePage({ onStart, session, onLogout }: HomePageProps) 
         </div>
       </section>
 
-      {/* ── 5. 최종 CTA ── */}
-      <section className="py-24 px-6 sm:px-10 bg-[#fafafa] border-t border-[#ebebeb] text-center">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <SectionLabel>Get Started</SectionLabel>
-          <Logo size="lg" showDot={true} className="justify-center" />
-          <h2 className="text-3xl sm:text-4xl font-black text-[#222222] leading-tight">
-            지금 시작하세요.
-          </h2>
-          <p className="text-base text-[#6a6a6a] font-light leading-relaxed">
-            작가라면 나의 작품을 세상에 꺼내고, 감상자라면 오랫동안 찾던 그 작품을 만나보세요.
-          </p>
-          <button
-            onClick={onStart}
-            className="inline-flex items-center gap-2 px-9 py-4 bg-[#ff385c] hover:bg-[#e00b41] active:scale-95 text-white font-bold text-base rounded-full transition-all cursor-pointer border-none shadow-sm"
-          >
-            <AB /> 시작하기
-            <ArrowRight className="h-5 w-5" />
-          </button>
-        </div>
-      </section>
-
-      {/* ── 하단 푸터 ── */}
+      {/* ── 푸터 ── */}
       <footer className="border-t border-[#ebebeb] py-8 px-6 sm:px-10">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <Logo size="sm" />
           <p className="text-sm text-[#aaaaaa] font-mono">
-            &copy; {new Date().getFullYear()} <AB />. All rights reserved.
+            &copy; {new Date().getFullYear()} A-BEACON. All rights reserved.
           </p>
         </div>
       </footer>

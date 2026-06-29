@@ -33,9 +33,15 @@ import {
   CircleDollarSign,
   ThumbsUp,
   ThumbsDown,
+  Shield,
+  CreditCard,
+  Truck,
+  PackageCheck,
+  BadgeCheck,
+  LockKeyhole,
 } from "lucide-react";
-import { chatApi, artworksApi } from "../services/api";
-import type { UserSession, UserInquiry, ChatMessage, TradeStatus, Artwork, EstimateData } from "../types";
+import { chatApi, artworksApi, paymentApi } from "../services/api";
+import type { UserSession, UserInquiry, ChatMessage, TradeStatus, Artwork, EstimateData, PaymentRecord, EscrowStatus } from "../types";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -172,6 +178,507 @@ function ArtworkThumb({
       className={`object-cover ${className ?? ""}`}
       onError={() => setBroken(true)}
     />
+  );
+}
+
+// ─── 에스크로 상태 패널 ───────────────────────────────────────────────────────
+
+interface EscrowPanelProps {
+  payment: PaymentRecord | null;
+  isArtist: boolean;
+  isClosed: boolean;
+  onPayDeposit: () => void;
+  onShip: () => void;
+  onConfirmDelivery: () => void;
+  isProcessing: boolean;
+}
+
+function escrowLabel(status: EscrowStatus): string {
+  const map: Record<EscrowStatus, string> = {
+    deposit_held: "보관 중 · 발송 대기",
+    shipped: "발송 완료 · 수령 대기",
+    released: "지급 완료",
+    refunded: "환불 완료",
+  };
+  return map[status];
+}
+
+function EscrowPanel({ payment, isArtist, isClosed, onPayDeposit, onShip, onConfirmDelivery, isProcessing }: EscrowPanelProps) {
+  if (isClosed) return null;
+
+  const noPayment = !payment;
+
+  return (
+    <div className="flex-shrink-0 border-t border-[#e8f0fe] bg-gradient-to-r from-[#f0f4ff] to-[#f8f0ff] px-4 py-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* 왼쪽: 에스크로 상태 */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-[#4f46e5]/10 flex items-center justify-center">
+            <Shield className="h-4 w-4 text-[#4f46e5]" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-[#4f46e5] uppercase tracking-wide">A-BEACON 에스크로</span>
+              {payment && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  payment.escrowStatus === "released" ? "bg-emerald-100 text-emerald-700" :
+                  payment.escrowStatus === "shipped" ? "bg-amber-100 text-amber-700" :
+                  "bg-[#4f46e5]/10 text-[#4f46e5]"
+                }`}>
+                  {escrowLabel(payment.escrowStatus)}
+                </span>
+              )}
+            </div>
+            {payment ? (
+              <p className="text-[11px] text-[#6a6a6a] truncate">
+                {payment.escrowStatus === "deposit_held"
+                  ? payment.depositRate > 0
+                    ? `계약금 ${payment.depositAmount.toLocaleString("ko-KR")}원 보관 · 잔금 ${payment.finalAmount.toLocaleString("ko-KR")}원은 수령 시 결제`
+                    : `전액 ${payment.totalPrice.toLocaleString("ko-KR")}원 보관 · 수령 확인 시 작가 지급`
+                  : payment.escrowStatus === "shipped"
+                  ? `[${payment.carrier}] ${payment.trackingNumber}${payment.finalAmount > 0 ? ` · 잔금 ${payment.finalAmount.toLocaleString("ko-KR")}원 수령 시 결제` : ""}`
+                  : payment.escrowStatus === "released"
+                  ? `총 ${payment.totalPrice.toLocaleString("ko-KR")}원 작가 지급 완료`
+                  : ""}
+              </p>
+            ) : (
+              <p className="text-[11px] text-[#6a6a6a]">
+                {isArtist ? "구매자의 계약금 입금을 기다리는 중입니다" : "견적서 수락 후 안전하게 계약금을 결제하세요"}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 오른쪽: 액션 버튼 */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* 구매자: 결제 시작 */}
+          {!isArtist && noPayment && (
+            <button
+              onClick={onPayDeposit}
+              disabled={isProcessing}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full bg-[#4f46e5] text-white hover:bg-[#4338ca] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-none cursor-pointer shadow-sm"
+            >
+              <LockKeyhole className="h-3 w-3" />
+              안전 결제 시작
+            </button>
+          )}
+          {/* 구매자: 계약금 보관 중 → 작가 발송 기다리는 중 (버튼 없음, 안내만) */}
+          {!isArtist && payment?.escrowStatus === "deposit_held" && (
+            <span className="text-[11px] text-[#4f46e5] font-semibold px-3 py-1.5 bg-[#4f46e5]/8 rounded-full">
+              작가 발송 대기 중...
+            </span>
+          )}
+          {/* 작가: 계약금 확인 후 발송 신고 */}
+          {isArtist && payment?.escrowStatus === "deposit_held" && (
+            <button
+              onClick={onShip}
+              disabled={isProcessing}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-none cursor-pointer shadow-sm"
+            >
+              <Truck className="h-3 w-3" />
+              발송 완료 신고
+            </button>
+          )}
+          {/* 작가: 발송 완료 후 구매자 수령 대기 */}
+          {isArtist && payment?.escrowStatus === "shipped" && (
+            <span className="text-[11px] text-amber-600 font-semibold px-3 py-1.5 bg-amber-50 rounded-full border border-amber-200">
+              구매자 수령 확인 대기 중
+            </span>
+          )}
+          {/* 구매자: 발송 완료 → 수령 확인 + 잔금 결제 */}
+          {!isArtist && payment?.escrowStatus === "shipped" && (
+            <button
+              onClick={onConfirmDelivery}
+              disabled={isProcessing}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-none cursor-pointer shadow-sm"
+            >
+              <PackageCheck className="h-3 w-3" />
+              {payment.finalAmount > 0 ? `수령 확인 + 잔금 결제` : `수령 확인`}
+            </button>
+          )}
+          {/* 양쪽: 거래 완료 */}
+          {payment?.escrowStatus === "released" && (
+            <div className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              거래 완료
+            </div>
+          )}
+          {isProcessing && (
+            <RefreshCw className="h-4 w-4 text-[#4f46e5] animate-spin" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 결제 모달 (구매자 전용) ──────────────────────────────────────────────────
+
+interface PaymentModalProps {
+  step: "deposit" | "final";
+  payment: PaymentRecord | null;
+  estimateData: { totalPrice: number; depositRate: number; estimateNo: string; artworkTitle: string; artistName: string };
+  onConfirm: (cardHolder: string) => void;
+  onClose: () => void;
+  isProcessing: boolean;
+}
+
+function PaymentModal({ step, payment, estimateData, onConfirm, onClose, isProcessing }: PaymentModalProps) {
+  const [cardNumber, setCardNumber] = React.useState("4532 1234 5678 9012");
+  const [expiry, setExpiry] = React.useState("12/28");
+  const [cvc, setCvc] = React.useState("123");
+  const [cardHolder, setCardHolder] = React.useState("");
+
+  const isDeposit = step === "deposit" && !payment;
+  const depositAmt = estimateData.depositRate > 0
+    ? Math.round(estimateData.totalPrice * (estimateData.depositRate / 100))
+    : estimateData.totalPrice;
+  const finalAmt = estimateData.totalPrice - (estimateData.depositRate > 0 ? depositAmt : 0);
+
+  const payAmount = isDeposit ? depositAmt : (payment?.finalAmount ?? finalAmt);
+  const stepLabel = isDeposit
+    ? (estimateData.depositRate > 0 ? `계약금 ${estimateData.depositRate}%` : "전액 결제")
+    : "잔금 결제";
+
+  const formatCard = (v: string) => {
+    const digits = v.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(.{4})/g, "$1 ").trim();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="w-full sm:max-w-md bg-white sm:rounded-2xl shadow-2xl flex flex-col rounded-t-2xl">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#ebebeb]">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-[#4f46e5]/10 flex items-center justify-center">
+              <Shield className="h-4 w-4 text-[#4f46e5]" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#222222]">A-BEACON 안전 결제</p>
+              <p className="text-[11px] text-[#aaaaaa]">{estimateData.artworkTitle} · {stepLabel}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-[#f7f7f7] text-[#6a6a6a] border-none bg-transparent cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* 결제 금액 표시 */}
+        <div className="mx-5 mt-5 bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] rounded-2xl px-5 py-4 text-white">
+          <p className="text-xs font-semibold opacity-70 mb-1">{stepLabel} 결제 금액</p>
+          <p className="text-2xl font-bold">{payAmount.toLocaleString("ko-KR")}원</p>
+          {isDeposit && estimateData.depositRate > 0 && (
+            <p className="text-xs opacity-60 mt-1">총 {estimateData.totalPrice.toLocaleString("ko-KR")}원 중 계약금</p>
+          )}
+          <div className="flex items-center gap-1 mt-2">
+            <LockKeyhole className="h-3 w-3 opacity-70" />
+            <span className="text-[11px] opacity-70">A-BEACON 에스크로 보관 · 수령 확인 후 작가 지급</span>
+          </div>
+        </div>
+
+        {/* 카드 정보 */}
+        <div className="px-5 pt-4 pb-5 space-y-3">
+          <div>
+            <label className="block text-xs font-bold text-[#444444] mb-1.5">카드 번호</label>
+            <div className="flex items-center gap-2 border border-[#ebebeb] rounded-xl px-3 py-2.5 focus-within:border-[#4f46e5]/50 focus-within:ring-2 focus-within:ring-[#4f46e5]/20 transition-all">
+              <CreditCard className="h-4 w-4 text-[#aaaaaa] flex-shrink-0" />
+              <input
+                type="text"
+                value={cardNumber}
+                onChange={(e) => setCardNumber(formatCard(e.target.value))}
+                maxLength={19}
+                className="flex-1 text-sm font-mono text-[#222222] outline-none bg-transparent tracking-wider"
+                placeholder="0000 0000 0000 0000"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-[#444444] mb-1.5">유효기간</label>
+              <input
+                type="text"
+                value={expiry}
+                onChange={(e) => setExpiry(e.target.value)}
+                maxLength={5}
+                placeholder="MM/YY"
+                className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm font-mono text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/20 focus:border-[#4f46e5]/50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#444444] mb-1.5">CVC</label>
+              <input
+                type="text"
+                value={cvc}
+                onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                maxLength={3}
+                placeholder="000"
+                className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm font-mono text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/20 focus:border-[#4f46e5]/50"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-[#444444] mb-1.5">카드 소유자명 <span className="text-[#ff385c]">*</span></label>
+            <input
+              type="text"
+              value={cardHolder}
+              onChange={(e) => setCardHolder(e.target.value)}
+              placeholder="카드에 표시된 이름"
+              className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/20 focus:border-[#4f46e5]/50 placeholder-[#aaaaaa]"
+            />
+          </div>
+        </div>
+
+        {/* 버튼 */}
+        <div className="flex gap-2 px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 text-sm font-bold text-[#6a6a6a] border border-[#ebebeb] rounded-xl hover:bg-[#f7f7f7] transition-all cursor-pointer bg-white"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => onConfirm(cardHolder)}
+            disabled={!cardHolder.trim() || isProcessing}
+            className="flex-[2] py-3 text-sm font-bold text-white bg-[#4f46e5] hover:bg-[#4338ca] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all border-none cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isProcessing ? (
+              <><RefreshCw className="h-4 w-4 animate-spin" /> 처리 중...</>
+            ) : (
+              <><Shield className="h-4 w-4" /> {payAmount.toLocaleString("ko-KR")}원 안전 결제</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 발송 완료 신고 모달 (작가 전용) ─────────────────────────────────────────
+
+interface ShipModalProps {
+  onConfirm: (carrier: string, trackingNumber: string) => void;
+  onClose: () => void;
+  isProcessing: boolean;
+}
+
+const CARRIERS = ["CJ대한통운", "한진택배", "롯데택배", "우체국 EMS", "로젠택배", "쿠팡로켓배송", "화물 직접 운송"];
+
+function ShipModal({ onConfirm, onClose, isProcessing }: ShipModalProps) {
+  const [carrier, setCarrier] = React.useState(CARRIERS[0]);
+  const [trackingNumber, setTrackingNumber] = React.useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="w-full sm:max-w-sm bg-white sm:rounded-2xl shadow-2xl flex flex-col rounded-t-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#ebebeb]">
+          <div className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-amber-500" />
+            <div>
+              <p className="text-sm font-bold text-[#222222]">발송 완료 신고</p>
+              <p className="text-[11px] text-[#aaaaaa]">운송장 번호를 입력해주세요</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-[#f7f7f7] text-[#6a6a6a] border-none bg-transparent cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 pt-4 pb-5 space-y-3">
+          <div>
+            <label className="block text-xs font-bold text-[#444444] mb-1.5">택배사</label>
+            <select
+              value={carrier}
+              onChange={(e) => setCarrier(e.target.value)}
+              className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 bg-white cursor-pointer"
+            >
+              {CARRIERS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-[#444444] mb-1.5">운송장 번호 <span className="text-[#ff385c]">*</span></label>
+            <input
+              type="text"
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value.replace(/\s/g, ""))}
+              placeholder="숫자 또는 영문+숫자"
+              className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm font-mono text-[#222222] focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 placeholder-[#aaaaaa]"
+            />
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <p className="text-[11px] text-amber-700 leading-relaxed">
+              발송 완료 신고 후 구매자가 수령을 확인하면 A-BEACON이 에스크로 보관 대금을 작가에게 자동 지급합니다.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 text-sm font-bold text-[#6a6a6a] border border-[#ebebeb] rounded-xl hover:bg-[#f7f7f7] transition-all cursor-pointer bg-white"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => onConfirm(carrier, trackingNumber)}
+            disabled={!trackingNumber.trim() || isProcessing}
+            className="flex-[2] py-3 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all border-none cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isProcessing ? (
+              <><RefreshCw className="h-4 w-4 animate-spin" /> 처리 중...</>
+            ) : (
+              <><Truck className="h-4 w-4" /> 발송 완료 신고</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 수령 확인 + 잔금 결제 모달 (구매자 전용) ────────────────────────────────
+
+interface ConfirmDeliveryModalProps {
+  payment: PaymentRecord;
+  onConfirm: (cardHolder: string) => void;
+  onClose: () => void;
+  isProcessing: boolean;
+}
+
+function ConfirmDeliveryModal({ payment, onConfirm, onClose, isProcessing }: ConfirmDeliveryModalProps) {
+  const [cardNumber, setCardNumber] = React.useState("4532 1234 5678 9012");
+  const [expiry, setExpiry] = React.useState("12/28");
+  const [cvc, setCvc] = React.useState("123");
+  const [cardHolder, setCardHolder] = React.useState("");
+
+  const hasFinal = payment.finalAmount > 0;
+
+  const formatCard = (v: string) => {
+    const digits = v.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(.{4})/g, "$1 ").trim();
+  };
+
+  const canSubmit = hasFinal ? cardHolder.trim().length > 0 : true;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+      <div className="w-full sm:max-w-md bg-white sm:rounded-2xl shadow-2xl flex flex-col rounded-t-2xl">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#ebebeb]">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
+              <PackageCheck className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#222222]">
+                {hasFinal ? "수령 확인 + 잔금 결제" : "수령 확인"}
+              </p>
+              <p className="text-[11px] text-[#aaaaaa]">{payment.artworkTitle}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-[#f7f7f7] text-[#6a6a6a] border-none bg-transparent cursor-pointer">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 pt-4 pb-1 space-y-3">
+          {/* 운송 정보 */}
+          <div className="flex items-center gap-3 bg-[#f7f7f7] rounded-xl px-4 py-3">
+            <Truck className="h-4 w-4 text-[#6a6a6a] flex-shrink-0" />
+            <div>
+              <p className="text-[11px] text-[#6a6a6a]">{payment.carrier}</p>
+              <p className="text-xs font-mono font-bold text-[#222222]">{payment.trackingNumber}</p>
+            </div>
+          </div>
+
+          {/* 잔금 결제 섹션 */}
+          {hasFinal ? (
+            <>
+              {/* 금액 요약 */}
+              <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-2xl px-5 py-4 text-white">
+                <p className="text-xs font-semibold opacity-70 mb-1">잔금 결제 금액</p>
+                <p className="text-2xl font-bold">{payment.finalAmount.toLocaleString("ko-KR")}원</p>
+                <p className="text-[11px] opacity-60 mt-0.5">
+                  이미 납부한 계약금 {payment.depositAmount.toLocaleString("ko-KR")}원 포함 총 {payment.totalPrice.toLocaleString("ko-KR")}원
+                </p>
+                <div className="flex items-center gap-1 mt-2">
+                  <LockKeyhole className="h-3 w-3 opacity-70" />
+                  <span className="text-[11px] opacity-70">결제 즉시 작가에게 전액 지급됩니다</span>
+                </div>
+              </div>
+
+              {/* 카드 입력 */}
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-xs font-bold text-[#444444] mb-1.5">카드 번호</label>
+                  <div className="flex items-center gap-2 border border-[#ebebeb] rounded-xl px-3 py-2.5 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
+                    <CreditCard className="h-4 w-4 text-[#aaaaaa] flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(formatCard(e.target.value))}
+                      maxLength={19}
+                      className="flex-1 text-sm font-mono text-[#222222] outline-none bg-transparent tracking-wider"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-[#444444] mb-1.5">유효기간</label>
+                    <input type="text" value={expiry} onChange={(e) => setExpiry(e.target.value)} maxLength={5} placeholder="MM/YY"
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm font-mono text-[#222222] focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#444444] mb-1.5">CVC</label>
+                    <input type="text" value={cvc} onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 3))} maxLength={3} placeholder="000"
+                      className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm font-mono text-[#222222] focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#444444] mb-1.5">카드 소유자명 <span className="text-[#ff385c]">*</span></label>
+                  <input type="text" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} placeholder="카드에 표시된 이름"
+                    className="w-full border border-[#ebebeb] rounded-xl px-3 py-2.5 text-sm text-[#222222] focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-400 placeholder-[#aaaaaa]" />
+                </div>
+              </div>
+            </>
+          ) : (
+            /* 전액 선결제의 경우: 카드 없이 수령 확인만 */
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <p className="text-sm font-bold text-emerald-800 mb-1">대금 지급 안내</p>
+              <p className="text-xs text-emerald-700 leading-relaxed">
+                수령을 확인하면 A-BEACON 에스크로에 보관 중인{" "}
+                <span className="font-bold">{payment.totalPrice.toLocaleString("ko-KR")}원</span>이
+                즉시 작가에게 지급됩니다.
+              </p>
+            </div>
+          )}
+
+          <p className="text-[10px] text-[#aaaaaa] text-center pb-1">
+            수령 확인은 취소할 수 없습니다. 작품 상태를 확인한 후 진행해주세요.
+          </p>
+        </div>
+
+        <div className="flex gap-2 px-5 pb-5 pt-3">
+          <button onClick={onClose}
+            className="flex-1 py-3 text-sm font-bold text-[#6a6a6a] border border-[#ebebeb] rounded-xl hover:bg-[#f7f7f7] transition-all cursor-pointer bg-white">
+            아직 못 받음
+          </button>
+          <button
+            onClick={() => onConfirm(cardHolder)}
+            disabled={!canSubmit || isProcessing}
+            className="flex-[2] py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all border-none cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isProcessing ? (
+              <><RefreshCw className="h-4 w-4 animate-spin" /> 처리 중...</>
+            ) : hasFinal ? (
+              <><PackageCheck className="h-4 w-4" /> 수령 확인 + {payment.finalAmount.toLocaleString("ko-KR")}원 결제</>
+            ) : (
+              <><PackageCheck className="h-4 w-4" /> 수령 확인 · 대금 지급</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -677,6 +1184,12 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
   const [showQuickReply, setShowQuickReply] = useState(false);
   // 견적서 모달
   const [showEstimateModal, setShowEstimateModal] = useState(false);
+  // 에스크로 결제
+  const [payment, setPayment] = useState<PaymentRecord | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showShipModal, setShowShipModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [estimateForm, setEstimateForm] = useState({
     validUntil: "",
     supplyPrice: "",
@@ -986,6 +1499,80 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
     },
     [selectedRoom, isUpdatingStatus, fetchMessages]
   );
+
+  // ─── 에스크로 결제 로드 ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!selectedRoom || selectedRoom.status !== "거래중") {
+      setPayment(null);
+      return;
+    }
+    paymentApi.getByInquiry(selectedRoom.id).then(setPayment).catch(() => setPayment(null));
+  }, [selectedRoom?.id, selectedRoom?.status]);
+
+  // 견적서에서 금액/계약금 추출
+  const acceptedEstimate = useMemo(() => {
+    return messages.find(
+      (m) => m.messageType === "estimate" && m.estimate?.status === "accepted"
+    )?.estimate ?? null;
+  }, [messages]);
+
+  // ─── 결제 핸들러 ────────────────────────────────────────────────────────
+
+  const handlePayDeposit = useCallback(async (cardHolder: string) => {
+    if (!selectedRoom || !acceptedEstimate) return;
+    setIsProcessingPayment(true);
+    try {
+      const p = await paymentApi.create({
+        inquiryId: selectedRoom.id,
+        estimateNo: acceptedEstimate.estimateNo,
+        artworkTitle: selectedRoom.artworkTitle,
+        artistName: selectedRoom.artistName,
+        buyerEmail: session.email,
+        totalPrice: acceptedEstimate.totalPrice,
+        depositRate: acceptedEstimate.depositRate ?? 0,
+      });
+      setPayment(p);
+      setShowPaymentModal(false);
+      await fetchMessages(selectedRoom.id);
+    } catch (err: any) {
+      console.error("결제 실패:", err);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  }, [selectedRoom, acceptedEstimate, session.email, fetchMessages]);
+
+  const handleShip = useCallback(async (carrier: string, trackingNumber: string) => {
+    if (!payment) return;
+    setIsProcessingPayment(true);
+    try {
+      const p = await paymentApi.ship(payment.id, trackingNumber, carrier);
+      setPayment(p);
+      setShowShipModal(false);
+      await fetchMessages(selectedRoom!.id);
+    } catch (err: any) {
+      console.error("발송 신고 실패:", err);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  }, [payment, selectedRoom, fetchMessages]);
+
+  const handleConfirmDelivery = useCallback(async (_cardHolder: string) => {
+    if (!payment) return;
+    setIsProcessingPayment(true);
+    try {
+      const { payment: p, inquiry } = await paymentApi.confirmDelivery(payment.id);
+      setPayment(p);
+      setShowConfirmModal(false);
+      setSelectedRoom((prev) => prev ? { ...prev, status: inquiry.status } : prev);
+      setRooms((prev) => prev.map((r) => r.id === inquiry.id ? { ...r, status: inquiry.status } : r));
+      await fetchMessages(selectedRoom!.id);
+    } catch (err: any) {
+      console.error("수령 확인 실패:", err);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  }, [payment, selectedRoom, fetchMessages]);
 
   // ─── 방 선택 ──────────────────────────────────────────────────────────────
 
@@ -1373,6 +1960,19 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
                 />
               )}
 
+              {/* 에스크로 결제 패널 (거래중 상태) */}
+              {selectedRoom.status === "거래중" && acceptedEstimate && (
+                <EscrowPanel
+                  payment={payment}
+                  isArtist={isArtistInRoom(selectedRoom)}
+                  isClosed={false}
+                  onPayDeposit={() => setShowPaymentModal(true)}
+                  onShip={() => setShowShipModal(true)}
+                  onConfirmDelivery={() => setShowConfirmModal(true)}
+                  isProcessing={isProcessingPayment}
+                />
+              )}
+
               {/* 입력 영역 */}
               <div className="flex-shrink-0 border-t border-[#ebebeb] bg-white px-4 py-3">
                   <div className="flex items-end gap-2">
@@ -1628,6 +2228,43 @@ export default function ChatPage({ session, chatMode, initialRoomId, onBack }: C
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── 결제 모달 (계약금 / 전액 납부) ────────────────────────────── */}
+      {showPaymentModal && selectedRoom && acceptedEstimate && (
+        <PaymentModal
+          step="deposit"
+          payment={payment}
+          estimateData={{
+            totalPrice: acceptedEstimate.totalPrice,
+            depositRate: acceptedEstimate.depositRate ?? 0,
+            estimateNo: acceptedEstimate.estimateNo,
+            artworkTitle: selectedRoom.artworkTitle,
+            artistName: selectedRoom.artistName,
+          }}
+          onConfirm={handlePayDeposit}
+          onClose={() => setShowPaymentModal(false)}
+          isProcessing={isProcessingPayment}
+        />
+      )}
+
+      {/* ─── 발송 완료 신고 모달 ────────────────────────────────────────── */}
+      {showShipModal && (
+        <ShipModal
+          onConfirm={handleShip}
+          onClose={() => setShowShipModal(false)}
+          isProcessing={isProcessingPayment}
+        />
+      )}
+
+      {/* ─── 수령 확인 모달 ─────────────────────────────────────────────── */}
+      {showConfirmModal && payment && (
+        <ConfirmDeliveryModal
+          payment={payment}
+          onConfirm={handleConfirmDelivery}
+          onClose={() => setShowConfirmModal(false)}
+          isProcessing={isProcessingPayment}
+        />
       )}
     </div>
   );

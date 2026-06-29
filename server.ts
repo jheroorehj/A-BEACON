@@ -9,7 +9,7 @@ import fs from "fs";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { INITIAL_ARTISTS, INITIAL_ARTWORKS } from "./src/data";
-import { Artist, Artwork, UserInquiry, ChatMessage, TradeStatus } from "./src/types";
+import { Artist, Artwork, UserInquiry, ChatMessage, TradeStatus, PaymentRecord, EscrowStatus } from "./src/types";
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +24,7 @@ interface PersistedStore {
   artworks: Artwork[];
   inquiries: UserInquiry[];
   chatMessages: ChatMessage[];
+  payments: PaymentRecord[];
 }
 
 function loadPersistedData(): PersistedStore | null {
@@ -41,7 +42,7 @@ function loadPersistedData(): PersistedStore | null {
 }
 
 function saveData(): void {
-  const payload: PersistedStore = { artists, artworks, inquiries, chatMessages };
+  const payload: PersistedStore = { artists, artworks, inquiries, chatMessages, payments };
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(payload, null, 2), "utf-8");
   } catch (err) {
@@ -55,6 +56,7 @@ let artists: Artist[] = persisted?.artists?.length ? persisted.artists : [...INI
 let artworks: Artwork[] = persisted?.artworks?.length ? persisted.artworks : [...INITIAL_ARTWORKS];
 let inquiries: UserInquiry[] = persisted?.inquiries ?? [];
 let chatMessages: ChatMessage[] = persisted?.chatMessages ?? [];
+let payments: PaymentRecord[] = persisted?.payments ?? [];
 
 // Rule-based search algorithm
 function localRuleBasedSearch(query: string) {
@@ -195,7 +197,10 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: "20mb" }));
+
+  // PHOTO 폴더 정적 서빙
+  app.use("/photos", express.static(path.join(process.cwd(), "PHOTO")));
 
   // CORS - 개발 환경에서 프론트엔드가 다른 포트로 실행될 경우를 위한 허용 헤더
   app.use((req, res, next) => {
@@ -324,7 +329,7 @@ async function startServer() {
 
   // API Route - Update artist profile
   app.put("/api/artists/:id", (req, res) => {
-    const { name, avatar, bio, keywords, interviewQuestions, email } = req.body;
+    const { name, avatar, bio, keywords, interviewQuestions, email, card, profileBlocks } = req.body;
     const index = artists.findIndex((a) => a.id === req.params.id);
     if (index === -1) {
       const newArtist: Artist = {
@@ -347,6 +352,8 @@ async function startServer() {
     if (keywords !== undefined) patch.keywords = keywords;
     if (interviewQuestions !== undefined) patch.interviewQuestions = interviewQuestions;
     if (email !== undefined) patch.email = email;
+    if (card !== undefined) patch.card = card;
+    if (profileBlocks !== undefined) patch.profileBlocks = profileBlocks;
     artists[index] = { ...artists[index], ...patch };
     saveData();
     res.json(artists[index]);
@@ -518,6 +525,127 @@ async function startServer() {
     res.json(msg);
   });
 
+  // ─── 에스크로 결제 API ────────────────────────────────────────────────────
+
+  // 특정 거래의 결제 정보 조회
+  app.get("/api/payments/inquiry/:inquiryId", (req, res) => {
+    const payment = payments.find((p) => p.inquiryId === req.params.inquiryId);
+    if (!payment) return res.status(404).json({ error: "결제 정보 없음" });
+    res.json(payment);
+  });
+
+  // 결제 생성 (계약금 or 전액 납부 → 에스크로 보관)
+  app.post("/api/payments", (req, res) => {
+    const { inquiryId, estimateNo, artworkTitle, artistName, buyerEmail, totalPrice, depositRate } = req.body;
+    if (!inquiryId || !buyerEmail || !totalPrice) {
+      return res.status(400).json({ error: "필수 항목 누락" });
+    }
+    const existing = payments.find((p) => p.inquiryId === inquiryId);
+    if (existing) return res.status(409).json({ error: "이미 결제가 진행 중입니다" });
+
+    const rate = Number(depositRate) || 0;
+    const depositAmt = rate > 0 ? Math.round(Number(totalPrice) * (rate / 100)) : Number(totalPrice);
+    const finalAmt = rate > 0 ? Number(totalPrice) - depositAmt : 0;
+
+    const payment: PaymentRecord = {
+      id: `pay_${Date.now()}`,
+      inquiryId,
+      estimateNo: estimateNo || "",
+      artworkTitle: artworkTitle || "",
+      artistName: artistName || "",
+      buyerEmail,
+      totalPrice: Number(totalPrice),
+      depositRate: rate,
+      depositAmount: depositAmt,
+      finalAmount: finalAmt,
+      escrowStatus: "deposit_held",
+      createdAt: new Date().toISOString(),
+      depositPaidAt: new Date().toISOString(),
+    };
+    payments.push(payment);
+
+    const amtLabel = rate > 0
+      ? `계약금 ${depositAmt.toLocaleString("ko-KR")}원 (${rate}%)`
+      : `전액 ${depositAmt.toLocaleString("ko-KR")}원`;
+    const remainLabel = rate > 0
+      ? ` · 잔금 ${finalAmt.toLocaleString("ko-KR")}원은 작품 수령 후 결제`
+      : "";
+    chatMessages.push({
+      id: `msg_pay_${Date.now()}`,
+      inquiryId,
+      senderEmail: "system",
+      senderName: "시스템",
+      senderRole: "system",
+      content: `🔒 A-BEACON 에스크로 — ${amtLabel}이 안전하게 보관되었습니다${remainLabel}. 작가가 작품을 발송하면 알려드릴게요.`,
+      sentAt: new Date().toISOString(),
+      messageType: "system",
+    });
+    saveData();
+    res.status(201).json(payment);
+  });
+
+  // 발송 완료 신고 (작가) — 계약금만 보관된 상태에서 발송 가능
+  app.put("/api/payments/:paymentId/ship", (req, res) => {
+    const { trackingNumber, carrier } = req.body;
+    const payment = payments.find((p) => p.id === req.params.paymentId);
+    if (!payment) return res.status(404).json({ error: "결제 정보 없음" });
+    if (payment.escrowStatus !== "deposit_held") {
+      return res.status(400).json({ error: "계약금 입금 후 발송 신고 가능합니다" });
+    }
+    if (!trackingNumber) return res.status(400).json({ error: "운송장 번호를 입력해주세요" });
+    payment.escrowStatus = "shipped";
+    payment.trackingNumber = trackingNumber;
+    payment.carrier = carrier || "택배사 미지정";
+    payment.shippedAt = new Date().toISOString();
+    const finalNote = payment.finalAmount > 0
+      ? ` · 잔금 ${payment.finalAmount.toLocaleString("ko-KR")}원은 수령 확인 시 함께 결제됩니다`
+      : "";
+    chatMessages.push({
+      id: `msg_ship_${Date.now()}`,
+      inquiryId: payment.inquiryId,
+      senderEmail: "system",
+      senderName: "시스템",
+      senderRole: "system",
+      content: `📦 발송 완료 — [${payment.carrier}] 운송장: ${trackingNumber}${finalNote}. 작품을 받으시면 수령 확인 버튼을 눌러주세요.`,
+      sentAt: new Date().toISOString(),
+      messageType: "system",
+    });
+    saveData();
+    res.json(payment);
+  });
+
+  // 수령 확인 + 잔금 결제 (구매자) → 에스크로 전액 작가 지급 + 거래완료
+  app.put("/api/payments/:paymentId/confirm", (req, res) => {
+    const payment = payments.find((p) => p.id === req.params.paymentId);
+    if (!payment) return res.status(404).json({ error: "결제 정보 없음" });
+    if (payment.escrowStatus !== "shipped") {
+      return res.status(400).json({ error: "발송 완료 후 수령 확인 가능합니다" });
+    }
+    payment.escrowStatus = "released";
+    payment.finalPaidAt = payment.finalAmount > 0 ? new Date().toISOString() : undefined;
+    payment.deliveredConfirmedAt = new Date().toISOString();
+    payment.releasedAt = new Date().toISOString();
+
+    const inq = inquiries.find((i) => i.id === payment.inquiryId);
+    if (inq) inq.status = "거래완료";
+
+    const finalNote = payment.finalAmount > 0
+      ? `잔금 ${payment.finalAmount.toLocaleString("ko-KR")}원 결제 완료. `
+      : "";
+    chatMessages.push({
+      id: `msg_confirm_${Date.now()}`,
+      inquiryId: payment.inquiryId,
+      senderEmail: "system",
+      senderName: "시스템",
+      senderRole: "system",
+      content: `✅ 수령 확인 완료 — ${finalNote}A-BEACON이 작가에게 총 ${payment.totalPrice.toLocaleString("ko-KR")}원을 지급했습니다. 거래가 완료되었습니다.`,
+      sentAt: new Date().toISOString(),
+      messageType: "system",
+    });
+    saveData();
+    res.json({ payment, inquiry: inq });
+  });
+
   app.get("/api/inquiries", (req, res) => {
     const { artistId } = req.query;
     if (artistId) {
@@ -599,6 +727,59 @@ async function startServer() {
 
   // 서버 시작 후 비동기로 동기화 (시작 속도에 영향 없음)
   syncArtworksToFlask();
+
+  /**
+   * POST /api/gemini/room-preview
+   * 방 사진 + 작품 이미지 → Flask Python SDK(Imagen)로 위임 → 방 벽에 작품이 걸린 이미지 반환.
+   * Body: { roomImageBase64: string (data URL), artworkImageUrl: string, artworkTitle: string }
+   * Response: { previewImageBase64: string, mimeType: string }
+   */
+  app.post("/api/gemini/room-preview", async (req, res) => {
+    const { roomImageBase64, artworkImageUrl, artworkTitle } = req.body as {
+      roomImageBase64?: string;
+      artworkImageUrl?: string;
+      artworkTitle?: string;
+    };
+
+    if (!roomImageBase64 || !artworkImageUrl) {
+      return res.status(400).json({ error: "roomImageBase64와 artworkImageUrl이 필요합니다." });
+    }
+
+    try {
+      // 작품 이미지 URL → base64 (서버 사이드 fetch로 CORS 우회)
+      const artworkRes = await fetch(artworkImageUrl, { signal: AbortSignal.timeout(15_000) });
+      if (!artworkRes.ok) throw new Error("작품 이미지를 불러올 수 없습니다.");
+      const artworkBuffer = await artworkRes.arrayBuffer();
+      const artworkBase64 = Buffer.from(artworkBuffer).toString("base64");
+
+      // Flask Python SDK로 위임
+      const flaskRes = await fetch(`${FLASK_URL}/api/room-preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomImageBase64,
+          artworkImageBase64: artworkBase64,
+          artworkTitle: artworkTitle || "작품",
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+
+      const flaskData = await flaskRes.json() as { imageBase64?: string; mimeType?: string; error?: string };
+
+      if (!flaskRes.ok || !flaskData.imageBase64) {
+        console.error("[Room Preview] Flask 오류:", flaskData.error);
+        return res.status(502).json({ error: flaskData.error || "이미지 생성에 실패했습니다." });
+      }
+
+      res.json({
+        previewImageBase64: flaskData.imageBase64,
+        mimeType: flaskData.mimeType || "image/jpeg",
+      });
+    } catch (e) {
+      console.error("[Room Preview] 오류:", e);
+      res.status(503).json({ error: "이미지 생성 중 오류가 발생했습니다." });
+    }
+  });
 
   /**
    * POST /api/room-match
