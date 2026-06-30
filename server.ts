@@ -852,7 +852,7 @@ async function startServer() {
       ? fs.readFileSync(indexPath, "utf-8")
       : null;
     console.log(`[Static] distPath=${distPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
-    app.use(express.static(distPath));
+    app.use("/assets", express.static(path.join(distPath, "assets")));
     app.get("*", (_req, res) => {
       if (indexHtml) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");
