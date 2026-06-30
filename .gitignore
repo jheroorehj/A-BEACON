@@ -8,5 +8,4 @@ coverage/
 !.env.example
 _server_data.json
 MOCK/
-PHOTO/
 public/mock/
