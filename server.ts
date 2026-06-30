@@ -838,7 +838,7 @@ async function startServer() {
   });
 
   // Serve static files / Vite HMR routing
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV === "development") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
