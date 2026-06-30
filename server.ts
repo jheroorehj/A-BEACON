@@ -221,6 +221,20 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // API Route - Debug info (Railway 진단용)
+  app.get("/api/debug", (req, res) => {
+    const distPath = path.join(process.cwd(), "dist");
+    res.json({
+      node: process.version,
+      cwd: process.cwd(),
+      NODE_ENV: process.env.NODE_ENV ?? "(unset)",
+      PORT: process.env.PORT ?? "(unset)",
+      distExists: fs.existsSync(distPath),
+      indexExists: fs.existsSync(path.join(distPath, "index.html")),
+      serverCjsExists: fs.existsSync(path.join(distPath, "server.cjs")),
+    });
+  });
+
   // API Route - Get all artworks
   app.get("/api/artworks", (req, res) => {
     res.json(artworks);
@@ -868,6 +882,17 @@ async function startServer() {
   });
 }
 
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] Uncaught exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[FATAL] Unhandled rejection:", reason);
+  process.exit(1);
+});
+
 startServer().catch((error) => {
-  console.error("Failed to start full-stack A-BEACON server:", error);
+  console.error("[FATAL] Failed to start server:", error);
+  process.exit(1);
 });
