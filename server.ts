@@ -847,9 +847,19 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    const indexPath = path.join(distPath, "index.html");
+    const indexHtml = fs.existsSync(indexPath)
+      ? fs.readFileSync(indexPath, "utf-8")
+      : null;
+    console.log(`[Static] distPath=${distPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    app.get("*", (_req, res) => {
+      if (indexHtml) {
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.send(indexHtml);
+      } else {
+        res.status(404).send(`index.html not found at ${indexPath}`);
+      }
     });
   }
 
