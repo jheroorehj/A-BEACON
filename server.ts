@@ -7,7 +7,6 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
-import { createServer as createViteServer } from "vite";
 import { INITIAL_ARTISTS, INITIAL_ARTWORKS } from "./src/data";
 import { Artist, Artwork, UserInquiry, ChatMessage, TradeStatus, PaymentRecord, EscrowStatus } from "./src/types";
 
@@ -840,6 +839,7 @@ async function startServer() {
 
   // Serve static files / Vite HMR routing
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
