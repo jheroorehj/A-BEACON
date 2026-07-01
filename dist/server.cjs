@@ -524,6 +524,10 @@ async function startServer() {
   const app = (0, import_express.default)();
   const PORT = Number(process.env.PORT) || 3e3;
   app.use(import_express.default.json({ limit: "20mb" }));
+  app.use((req, res, next) => {
+    console.log(`[REQ] ${req.method} ${req.url}`);
+    next();
+  });
   app.use("/photos", import_express.default.static(import_path.default.join(process.cwd(), "PHOTO")));
   app.use((req, res, next) => {
     const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173,http://localhost:3000").split(",");
@@ -1086,4 +1090,3 @@ startServer().catch((error) => {
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-//# sourceMappingURL=server.cjs.map

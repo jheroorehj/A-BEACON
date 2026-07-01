@@ -198,6 +198,12 @@ async function startServer() {
 
   app.use(express.json({ limit: "20mb" }));
 
+  // 요청 로깅 (Railway 진단용)
+  app.use((req, res, next) => {
+    console.log(`[REQ] ${req.method} ${req.url}`);
+    next();
+  });
+
   // PHOTO 폴더 정적 서빙
   app.use("/photos", express.static(path.join(process.cwd(), "PHOTO")));
 
