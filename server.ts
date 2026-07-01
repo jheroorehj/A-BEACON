@@ -229,15 +229,15 @@ async function startServer() {
 
   // API Route - Debug info (Railway 진단용)
   app.get("/api/debug", (req, res) => {
-    const distPath = path.join(process.cwd(), "dist");
+    const publicPath = path.join(process.cwd(), "dist", "public");
     res.json({
       node: process.version,
       cwd: process.cwd(),
       NODE_ENV: process.env.NODE_ENV ?? "(unset)",
       PORT: process.env.PORT ?? "(unset)",
-      distExists: fs.existsSync(distPath),
-      indexExists: fs.existsSync(path.join(distPath, "index.html")),
-      serverCjsExists: fs.existsSync(path.join(distPath, "server.cjs")),
+      distExists: fs.existsSync(publicPath),
+      indexExists: fs.existsSync(path.join(publicPath, "index.html")),
+      serverCjsExists: fs.existsSync(path.join(process.cwd(), "dist", "server.cjs")),
     });
   });
 
@@ -866,13 +866,13 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    const indexPath = path.join(distPath, "index.html");
+    const publicPath = path.join(process.cwd(), "dist", "public");
+    const indexPath = path.join(publicPath, "index.html");
     const indexHtml = fs.existsSync(indexPath)
       ? fs.readFileSync(indexPath, "utf-8")
       : null;
-    console.log(`[Static] distPath=${distPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
-    app.use("/assets", express.static(path.join(distPath, "assets")));
+    console.log(`[Static] publicPath=${publicPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
+    app.use("/assets", express.static(path.join(publicPath, "assets")));
     app.get("*", (_req, res) => {
       if (indexHtml) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");

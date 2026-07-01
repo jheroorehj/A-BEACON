@@ -6,14 +6,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy source (includes pre-compiled dist/server.cjs from git as fallback)
+# Copy source
 COPY . .
 
-# Build frontend with Vite (required)
+# Build frontend with Vite (output goes to dist/public, separate from server.cjs)
 RUN npx vite build
 
-# (Re)compile server with esbuild; if it fails, the pre-committed server.cjs is used
-RUN npx esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs || echo "[Dockerfile] esbuild skipped — using pre-committed dist/server.cjs"
+# Compile server with esbuild; fail the build if this fails
+RUN npx esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/server.cjs
 
 # Slim image by removing dev dependencies
 RUN npm prune --production

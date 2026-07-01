@@ -546,15 +546,15 @@ async function startServer() {
     res.json({ status: "ok" });
   });
   app.get("/api/debug", (req, res) => {
-    const distPath = import_path.default.join(process.cwd(), "dist");
+    const publicPath = import_path.default.join(process.cwd(), "dist", "public");
     res.json({
       node: process.version,
       cwd: process.cwd(),
       NODE_ENV: process.env.NODE_ENV ?? "(unset)",
       PORT: process.env.PORT ?? "(unset)",
-      distExists: import_fs.default.existsSync(distPath),
-      indexExists: import_fs.default.existsSync(import_path.default.join(distPath, "index.html")),
-      serverCjsExists: import_fs.default.existsSync(import_path.default.join(distPath, "server.cjs"))
+      distExists: import_fs.default.existsSync(publicPath),
+      indexExists: import_fs.default.existsSync(import_path.default.join(publicPath, "index.html")),
+      serverCjsExists: import_fs.default.existsSync(import_path.default.join(process.cwd(), "dist", "server.cjs"))
     });
   });
   app.get("/api/artworks", (req, res) => {
@@ -1056,11 +1056,11 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
-    const indexPath = import_path.default.join(distPath, "index.html");
+    const publicPath = import_path.default.join(process.cwd(), "dist", "public");
+    const indexPath = import_path.default.join(publicPath, "index.html");
     const indexHtml = import_fs.default.existsSync(indexPath) ? import_fs.default.readFileSync(indexPath, "utf-8") : null;
-    console.log(`[Static] distPath=${distPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
-    app.use("/assets", import_express.default.static(import_path.default.join(distPath, "assets")));
+    console.log(`[Static] publicPath=${publicPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
+    app.use("/assets", import_express.default.static(import_path.default.join(publicPath, "assets")));
     app.get("*", (_req, res) => {
       if (indexHtml) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -1090,3 +1090,4 @@ startServer().catch((error) => {
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
+//# sourceMappingURL=server.cjs.map
