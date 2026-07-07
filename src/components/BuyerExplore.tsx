@@ -101,10 +101,17 @@ export default function BuyerExplore({
   const [aiResult, setAiResult] = useState<AISearchResult | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  // 시연 영상용: 특정 프리셋 클릭 시 진행 단계를 수동으로 천천히 보여주고, 완료 후에도 위저드를 유지
+  const DEMO_SLOW_PRESET_TEXT = "햇살 드는 창가 아래 놓아둘 따뜻하고 소박한 도자기 화병";
+  const [isDemoStepping, setIsDemoStepping] = useState(false);
+  const [demoWizardPersist, setDemoWizardPersist] = useState(false);
+
   // Reusable Search Function
   const executeSearch = async (query: string) => {
     if (!query.trim()) return;
 
+    setIsDemoStepping(false);
+    setDemoWizardPersist(false);
     setIsAiLoading(true);
     setAiResult(null);
     setSearchError(null);
@@ -233,6 +240,7 @@ export default function BuyerExplore({
 
   // AI load animation steps simulator
   useEffect(() => {
+    if (isDemoStepping) return; // 데모 프리셋은 아래 handleDemoPresetSearch가 스텝을 직접 제어
     let interval: NodeJS.Timeout;
     if (isAiLoading) {
       setAiLoadingStep(1);
@@ -242,16 +250,49 @@ export default function BuyerExplore({
           return prev;
         });
       }, 950);
-    } else {
+    } else if (!demoWizardPersist) {
       setAiLoadingStep(0);
     }
     return () => clearInterval(interval);
-  }, [isAiLoading]);
+  }, [isAiLoading, isDemoStepping, demoWizardPersist]);
 
   // Handle NLP Search submission
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     await executeSearch(naturalSearchQuery);
+  };
+
+  // 시연 영상 전용: 프리셋 클릭 시 0.5초 간격으로 진행 단계를 보여주고, 완료 후에도 위저드를 계속 노출
+  const handleDemoPresetSearch = async (query: string) => {
+    setNaturalSearchQuery(query);
+    setIsDemoStepping(true);
+    setDemoWizardPersist(true);
+    setIsAiLoading(true);
+    setAiResult(null);
+    setSearchError(null);
+
+    setAiLoadingStep(0);
+    await new Promise((r) => setTimeout(r, 1500)); // 바가 0%로 완전히 리셋(transition duration-1000)될 시간을 확보
+    setAiLoadingStep(1);
+    await new Promise((r) => setTimeout(r, 1500));
+    setAiLoadingStep(2);
+    await new Promise((r) => setTimeout(r, 3000));
+    setAiLoadingStep(3);
+    await new Promise((r) => setTimeout(r, 1500));
+
+    try {
+      const data = await searchApi.naturalLanguage(query);
+      setAiResult(data);
+      setActiveSelectedTags(data.tags ?? []);
+      setTimeout(() => {
+        document.getElementById("explore-grid")?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    } catch (err) {
+      console.error("AI Search Failure:", err);
+      setSearchError(err instanceof ApiError ? err.message : "검색 중 오류가 발생했습니다.");
+    } finally {
+      setIsAiLoading(false); // demoWizardPersist가 true라 위저드는 계속 표시됨
+    }
   };
 
   // Remove tag chip
@@ -564,19 +605,19 @@ export default function BuyerExplore({
               </form>
 
               {/* Progress Wizard Overlay */}
-              {isAiLoading && (
+              {(isAiLoading || demoWizardPersist) && (
                 <div className="mt-6 max-w-lg mx-auto bg-white border border-[#dddddd] shadow-sm p-5 rounded-xl text-left" id="ai-progress-wizard">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs font-bold tracking-wider text-[#ff385c] animate-pulse">AI CURATOR IS PROCESSING...</span>
                     <span className="text-xs font-mono text-[#6a6a6a]">
-                      {aiLoadingStep === 1 ? "30%" : aiLoadingStep === 2 ? "65%" : "100%"}
+                      {aiLoadingStep === 0 ? "0%" : aiLoadingStep === 1 ? "33%" : aiLoadingStep === 2 ? "66%" : "100%"}
                     </span>
                   </div>
-                  
+
                   <div className="h-1 bg-gray-100 w-full mb-4 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#ff385c] transition-all duration-1000 ease-out" 
-                      style={{ width: aiLoadingStep === 1 ? "30%" : aiLoadingStep === 2 ? "65%" : "100%" }}
+                    <div
+                      className="h-full bg-[#ff385c] transition-all duration-1000 ease-out"
+                      style={{ width: aiLoadingStep === 0 ? "0%" : aiLoadingStep === 1 ? "33%" : aiLoadingStep === 2 ? "66%" : "100%" }}
                     />
                   </div>
 
@@ -613,8 +654,12 @@ export default function BuyerExplore({
                     key={idx}
                     type="button"
                     onClick={() => {
-                      setNaturalSearchQuery(p.text);
-                      executeSearch(p.text);
+                      if (p.text === DEMO_SLOW_PRESET_TEXT) {
+                        handleDemoPresetSearch(p.text);
+                      } else {
+                        setNaturalSearchQuery(p.text);
+                        executeSearch(p.text);
+                      }
                     }}
                     className="bg-white hover:bg-[#f7f7f7] text-[#222222] text-xs font-semibold py-1.5 px-3 border border-[#dddddd] rounded-full shadow-xs transition-all text-left cursor-pointer"
                   >
