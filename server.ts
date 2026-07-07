@@ -873,6 +873,7 @@ async function startServer() {
       : null;
     console.log(`[Static] publicPath=${publicPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
     app.use("/assets", express.static(path.join(publicPath, "assets")));
+    app.use("/fonts", express.static(path.join(publicPath, "fonts")));
     app.get("*", (_req, res) => {
       if (indexHtml) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");

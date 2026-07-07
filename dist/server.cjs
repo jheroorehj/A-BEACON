@@ -1061,6 +1061,7 @@ async function startServer() {
     const indexHtml = import_fs.default.existsSync(indexPath) ? import_fs.default.readFileSync(indexPath, "utf-8") : null;
     console.log(`[Static] publicPath=${publicPath} | index.html=${indexHtml ? "found" : "NOT FOUND"}`);
     app.use("/assets", import_express.default.static(import_path.default.join(publicPath, "assets")));
+    app.use("/fonts", import_express.default.static(import_path.default.join(publicPath, "fonts")));
     app.get("*", (_req, res) => {
       if (indexHtml) {
         res.setHeader("Content-Type", "text/html; charset=utf-8");
